@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'login_page.dart';
+
 class Complaint {
   final int id;
   final String baslik;
   final String aciklama;
   bool tamamlandi;
-
-  // Yeni ekledim: departman alanı
   final String departman;
 
   Complaint({
@@ -16,7 +15,7 @@ class Complaint {
     required this.baslik,
     required this.aciklama,
     required this.tamamlandi,
-    required this.departman,  
+    required this.departman,
   });
 
   factory Complaint.fromJson(Map<String, dynamic> json) {
@@ -26,9 +25,17 @@ class Complaint {
       aciklama: json['aciklama'],
       tamamlandi: json['tamamlandi'] == 1,
       departman: json['adres'],
-        
     );
   }
+}
+
+void main() {
+  runApp(MaterialApp(
+    theme: ThemeData(
+      scaffoldBackgroundColor: Colors.white,
+    ),
+    home: EmployeesPage(),
+  ));
 }
 
 class EmployeesPage extends StatefulWidget {
@@ -40,10 +47,10 @@ class _EmployeesPageState extends State<EmployeesPage> {
   List<Complaint> complaints = [];
   bool isLoading = true;
   String filter = 'Tümü';
-
-  // Yeni ekledim: departman listesi ve seçilen departman
   List<String> departments = ['Fen İşleri', 'İmar', 'İnsan Kaynakları', 'Bilgi İşlem'];
-  String selectedDepartment = 'Tümü';  // Yeni ekledim
+  String selectedDepartment = 'Departman Seç';
+
+  String _searchQuery = ''; 
 
   @override
   void initState() {
@@ -90,112 +97,189 @@ class _EmployeesPageState extends State<EmployeesPage> {
     }
   }
 
-  // Güncelledim: departmana göre filtreleme eklendi
   List<Complaint> get filteredComplaints {
     List<Complaint> filtered = complaints;
-
-    // Yeni ekledim: departman filtrelemesi
-    if (selectedDepartment != 'Tümü') {
+    if (selectedDepartment != 'Departman Seç') {
       filtered = filtered.where((c) => c.departman == selectedDepartment).toList();
     }
-
     if (filter == 'Tamamlanan') {
       filtered = filtered.where((c) => c.tamamlandi).toList();
     } else if (filter == 'Bekleyen') {
       filtered = filtered.where((c) => !c.tamamlandi).toList();
     }
+    if (_searchQuery.isNotEmpty) {  
+      filtered = filtered.where((c) =>
+        c.baslik.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        c.aciklama.toLowerCase().contains(_searchQuery.toLowerCase())
+      ).toList();
+    }
+
     return filtered;
   }
 
   Widget buildFilterButton(String label) {
-    return ElevatedButton(
-      onPressed: () {
-        setState(() {
-          filter = label;
-        });
-      },
-     
-      style: ElevatedButton.styleFrom(
-        backgroundColor: filter == label ? Colors.grey[700] : Colors.grey[400],
+    bool isSelected = filter == label;
+    return Expanded(
+      child: Container(
+        margin: EdgeInsets.zero,
+        child: OutlinedButton(
+          onPressed: () {
+            setState(() {
+              filter = label;
+            });
+          },
+          style: OutlinedButton.styleFrom(
+            backgroundColor: Colors.white,
+            side: const BorderSide(color: Colors.black, width: 1),
+            foregroundColor: Colors.black,
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
       ),
-      child: Text(label),
+    );
+  }
+
+  Widget buildDepartmentDropdown() {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.black, width: 1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedDepartment,
+          isExpanded: true,
+          items: ['Departman Seç', ...departments].map((dep) {
+            return DropdownMenuItem(
+              value: dep,
+              child: Text(dep),
+            );
+          }).toList(),
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                selectedDepartment = value;
+              });
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget buildSearchField() { 
+    return Container(
+      height: 48,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.black, width: 1), 
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'Ara...',
+          border: InputBorder.none,
+          isCollapsed: true, 
+          contentPadding: const EdgeInsets.symmetric(vertical: 14), 
+          suffixIcon: const Icon(Icons.search), 
+        ),
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
+      ),
+    );
+  }
+
+  void _logout() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Güncelledim: AppBar rengi turuncu yerine gri yapıldı
-     appBar: AppBar(
-  title: const Text("Talepler/Şikayetler"),
-  backgroundColor: const Color.fromARGB(255, 255, 248, 248),
-  leading: IconButton(
-    icon: const Icon(Icons.arrow_back),
-    tooltip: 'Geri',
-    onPressed: () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
-    },
-  ),
-),
-
+      appBar: AppBar(
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          tooltip: 'Geri',
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/mezitbellogo.png',
+              height: 60,
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Container()),
+          ],
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Yeni ekledim: Departman seçimi dropdown'u
-            DropdownButton<String>(
-              value: selectedDepartment,
-              items: ['Tümü', ...departments].map((dep) {
-                return DropdownMenuItem(
-                  value: dep,
-                  child: Text(dep),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    selectedDepartment = value;
-                  });
-                }
-              },
+            const Text(
+              'TALEP / ŞİKAYETLER',
+              style: TextStyle(
+                fontSize: 25,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-
-            SizedBox(height: 10),
-
-            // Mevcut: filtre butonları
+            Row( 
+              children: [
+                Expanded(child: buildDepartmentDropdown()), 
+                const SizedBox(width: 8),
+                Expanded(child: buildSearchField()), 
+              ],
+            ),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 buildFilterButton("Tümü"),
                 buildFilterButton("Bekleyen"),
                 buildFilterButton("Tamamlanan"),
               ],
             ),
-            SizedBox(height: 20),
             Expanded(
               child: isLoading
-                  ? Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator())
                   : filteredComplaints.isEmpty
-                      ? Center(child: Text("Görüntülenecek talep yok"))
+                      ? const Center(child: Text("Görüntülenecek talep yok"))
                       : ListView.builder(
                           itemCount: filteredComplaints.length,
                           itemBuilder: (context, index) {
                             final complaint = filteredComplaints[index];
                             return Card(
-                              color: complaint.tamamlandi ? Colors.green[100] : Colors.red[100],
+                              color: Colors.white,
                               child: ListTile(
                                 title: Text(complaint.baslik),
                                 subtitle: Text(complaint.aciklama),
                                 trailing: complaint.tamamlandi
-                                    ? Icon(Icons.check_circle, color: Colors.green)
+                                    ? const Icon(Icons.check_circle, color: Colors.green)
                                     : ElevatedButton(
-                                        child: Text("Tamamlandı"),
+                                        child: const Text("Tamamlandı"),
                                         onPressed: () => markAsCompleted(complaint.id),
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.grey[700], // Buton gri oldu
+                                          backgroundColor: Colors.grey[700],
                                         ),
                                       ),
                               ),
@@ -205,6 +289,12 @@ class _EmployeesPageState extends State<EmployeesPage> {
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _logout,
+        label: const Text('Çıkış Yap', style: TextStyle(color: Colors.black)),
+        icon: const Icon(Icons.logout, color: Colors.black),
+        backgroundColor: Colors.white,
       ),
     );
   }

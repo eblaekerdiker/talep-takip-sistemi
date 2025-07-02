@@ -15,30 +15,54 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   String? newPassword;
   String? confirmPassword;
 
+  InputDecoration inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.grey), // normal etiket rengi
+      floatingLabelStyle: TextStyle(color: Colors.grey), // focus olunca da aynı renk
+      border: OutlineInputBorder(
+      borderSide: BorderSide(color: Colors.black),
+      ),
+      enabledBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.black),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.black, width: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Şifremi Unuttum'),
-        backgroundColor: const Color.fromARGB(255, 99, 156, 213),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/mezitbellogo.png',
+              height: 55,
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const Text(
+                "ŞİFREMİ UNUTTUM",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
               TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Kullanıcı Adı',
-                  border: OutlineInputBorder(),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.black),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.black, width: 2),
-                  ),
-                ),
+                cursorColor: Colors.black,
+                decoration: inputDecoration('Kullanıcı Adı'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Lütfen kullanıcı adınızı giriniz';
@@ -49,11 +73,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               ),
               const SizedBox(height: 20),
               TextFormField(
+                cursorColor: Colors.black,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Yeni Şifre',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: inputDecoration('Yeni Şifre'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Lütfen yeni şifrenizi giriniz';
@@ -64,11 +86,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               ),
               const SizedBox(height: 20),
               TextFormField(
+                cursorColor: Colors.black,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Yeni Şifre (Tekrar)',
-                  border: OutlineInputBorder(),
-                ),
+                decoration: inputDecoration('Yeni Şifre (Tekrar)'),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Lütfen şifreyi tekrar giriniz';
@@ -81,13 +101,17 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 },
               ),
               const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: _resetPassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 247, 247, 255),
-                  foregroundColor: Colors.black,
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _resetPassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[300],
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('ŞİFREYİ DEĞİŞTİR'),
                 ),
-                child: const Text('Şifreyi Değiştir'),
               ),
             ],
           ),

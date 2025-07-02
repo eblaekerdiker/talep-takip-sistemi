@@ -1,10 +1,17 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'login_page.dart';
+import 'package:http/http.dart' as http;
 
 class ComplaintPage extends StatefulWidget {
-  const ComplaintPage ({super.key});
+  final String token;
+  final Map<String, String>? existingComplaint;
+
+  const ComplaintPage({
+    super.key,
+    required this.token,
+    this.existingComplaint,
+  });
 
   @override
   State<ComplaintPage> createState() => _ComplaintPageState();
@@ -12,20 +19,37 @@ class ComplaintPage extends StatefulWidget {
 
 class _ComplaintPageState extends State<ComplaintPage> {
   final _formKey = GlobalKey<FormState>();
+  final _subjectController = TextEditingController();
+  final _descriptionController = TextEditingController();
   String _selectedType = 'Talep';
-  String? _subject;
-  String? _description;
+  File? _selectedImage;
 
   final List<String> _types = ['Talep', 'Şikayet'];
 
-  // Yeni ekledim: seçilen resim için değişken
-  File? _selectedImage;
+  @override
+  void initState() {
+    super.initState();
+    if (widget.existingComplaint != null) {
+      _selectedType = widget.existingComplaint!['tip'] ?? 'Talep';
+      _subjectController.text = widget.existingComplaint!['konu'] ?? '';
+      _descriptionController.text = widget.existingComplaint!['aciklama'] ?? '';
+    }
+  }
 
-  // Yeni ekledim: resim seçme fonksiyonu
+  @override
+  void dispose() {
+    _subjectController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  OutlineInputBorder get _blackBorder => const OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.black),
+      );
+
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
@@ -33,118 +57,50 @@ class _ComplaintPageState extends State<ComplaintPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Talep / Şikayet Gönder'),
-        backgroundColor: const Color.fromARGB(255, 53, 145, 182),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // Tür seçimi
-              DropdownButtonFormField<String>(
-                value: _selectedType,
-                items: _types
-                    .map((type) =>
-                        DropdownMenuItem(value: type, child: Text(type)))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedType = value!;
-                  });
-                },
-                decoration: const InputDecoration(
-                  labelText: 'Tür Seçiniz',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 15),
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
 
-              // Konu içeriği
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Konu İçeriği',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Konu içeriğini giriniz';
-                  }
-                  _subject = value;
-                  return null;
-                },
-              ),
-              const SizedBox(height: 15),
+    final uri = Uri.parse('http://10.0.2.2:3000/api/veri-ekle');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer ${widget.token}'
+      ..fields['basvuru_no'] = DateTime.now().millisecondsSinceEpoch.toString()
+      ..fields['basvuru_tipi'] = _selectedType
+      ..fields['icerik'] = _descriptionController.text
+      ..fields['isim'] = 'Test'
+      ..fields['soyisim'] = 'Kullanici'
+      ..fields['adres'] = 'Adres Bilgisi'
+      ..fields['basvuru_durumu'] = 'Beklemede';
 
-              // Açıklama
-              TextFormField(
-                maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Açıklama',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Açıklama giriniz';
-                  }
-                  _description = value;
-                  return null;
-                },
-              ),
-              const SizedBox(height: 15),
+    if (_selectedImage != null) {
+      final imageStream = http.ByteStream(_selectedImage!.openRead());
+      final imageLength = await _selectedImage!.length();
+      final multipartFile = http.MultipartFile(
+        'image',
+        imageStream,
+        imageLength,
+        filename: _selectedImage!.path.split('/').last,
+      );
+      request.files.add(multipartFile);
+    }
 
-              // Yeni ekledim: Resim seçme butonu
-              ElevatedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.photo),
-                label: const Text('Resim Ekle'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 107, 131, 164),
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              // Yeni ekledim: seçilen resim önizlemesi
-              if (_selectedImage != null)
-                SizedBox(
-                  height: 150,
-                  child: Image.file(_selectedImage!),
-                ),
-
-              const SizedBox(height: 25),
-
-              // Gönder butonu
-              ElevatedButton(
-                onPressed: _submitForm,
-                child: const Text('Gönder'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 107, 131, 164),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      // Burada istersen _selectedImage ile resmi backend'e gönderebilirsin
-
+    try {
+      final response = await request.send();
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        Navigator.pop(context, {
+          'basvuru_no': request.fields['basvuru_no'],
+          'basvuru_tipi': _selectedType,
+          'icerik': _descriptionController.text,
+        });
+      } else {
+        final respStr = await response.stream.bytesToString();
+        throw Exception('Sunucu hatası: ${response.statusCode}\n$respStr');
+      }
+    } catch (e) {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('Gönderildi'),
-          content: const Text('Talep/Şikayet başarıyla gönderildi.'),
+          title: const Text('Hata'),
+          content: Text('Gönderim başarısız oldu: $e'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -154,5 +110,131 @@ class _ComplaintPageState extends State<ComplaintPage> {
         ),
       );
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Text(
+                  widget.existingComplaint != null
+                      ? 'TALEP / ŞİKAYET GÖNDER'
+                      : 'TALEP / ŞİKAYET GÖNDER',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              DropdownButtonFormField<String>(
+                value: _selectedType,
+                items: _types
+                    .map((type) =>
+                        DropdownMenuItem(value: type, child: Text(type)))
+                    .toList(),
+                onChanged: (value) => setState(() => _selectedType = value!),
+                decoration: InputDecoration(
+                  labelText: 'Tür Seçiniz',
+                  border: _blackBorder,
+                  enabledBorder: _blackBorder,
+                  focusedBorder: _blackBorder,
+                ),
+              ),
+              const SizedBox(height: 15),
+              TextFormField(
+                controller: _subjectController,
+                decoration: InputDecoration(
+                  labelText: 'Konu İçeriği',
+                  border: _blackBorder,
+                  enabledBorder: _blackBorder,
+                  focusedBorder: _blackBorder,
+                ),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Konu içeriğini giriniz' : null,
+              ),
+              const SizedBox(height: 15),
+              TextFormField(
+                controller: _descriptionController,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  labelText: 'Açıklama',
+                  border: _blackBorder,
+                  enabledBorder: _blackBorder,
+                  focusedBorder: _blackBorder,
+                ),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Açıklama giriniz' : null,
+              ),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: ElevatedButton.icon(
+                        onPressed: _pickImage,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
+                        ),
+                        icon: const Icon(Icons.photo),
+                        label: const Text('Resim Ekle'),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton(
+                        onPressed: _submitForm,
+                        style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStateProperty.all(Colors.white),
+                          foregroundColor:
+                              MaterialStateProperty.all(Colors.black),
+                          overlayColor: MaterialStateProperty.resolveWith<Color?>(
+                            (states) {
+                              if (states.contains(MaterialState.hovered)) {
+                                return Colors.red.withOpacity(0.4);
+                              }
+                              if (states.contains(MaterialState.pressed)) {
+                                return Colors.red.withOpacity(0.6);
+                              }
+                              return null;
+                            },
+                          ),
+                          padding: MaterialStateProperty.all(
+                            const EdgeInsets.symmetric(
+                                horizontal: 30, vertical: 15),
+                          ),
+                        ),
+                        child: const Text('Gönder'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              if (_selectedImage != null)
+                SizedBox(height: 150, child: Image.file(_selectedImage!)),
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

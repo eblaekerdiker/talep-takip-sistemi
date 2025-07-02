@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:talepsikayet/anasayfa_page.dart';
 import 'register_page.dart';
 import 'forgot_password.dart';
 import 'complaint_page.dart';
@@ -32,17 +34,19 @@ class _LoginPageState extends State<LoginPage> {
               children: <Widget>[
                 const SizedBox(height: 20),
                 Image.asset(
-                  'assets/mezitbellogo.png', 
+                  'assets/mezitbellogo.png',
                   height: 100,
                 ),
                 const SizedBox(height: 30),
                 TextFormField(
+                  cursorColor: Colors.black,
                   decoration: const InputDecoration(
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.black),
                     ),
                     labelText: 'Kullanıcı Adı',
-                    labelStyle: TextStyle(color: Color.fromARGB(255, 170, 171, 172)),
+                    labelStyle:
+                        TextStyle(color: Color.fromARGB(255, 170, 171, 172)),
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
@@ -55,15 +59,17 @@ class _LoginPageState extends State<LoginPage> {
                     username = value ?? '';
                   },
                 ),
-                const SizedBox(height: 10.0),
+                const SizedBox(height: 20),
                 TextFormField(
+                  cursorColor: Colors.black,
                   obscureText: true,
                   decoration: const InputDecoration(
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.black),
                     ),
                     labelText: 'Şifre',
-                    labelStyle: TextStyle(color: Color.fromARGB(255, 170, 171, 172)),
+                    labelStyle:
+                        TextStyle(color: Color.fromARGB(255, 170, 171, 172)),
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
@@ -102,23 +108,26 @@ class _LoginPageState extends State<LoginPage> {
           if (_formKey.currentState!.validate()) {
             _formKey.currentState!.save();
 
-            final rol = await login();
-            debugPrint("Gelen rol: $rol");
+            final loginResult = await login();
+            if (loginResult == null) return;
+
+            final rol = loginResult["rol"];
+            final token = loginResult["token"];
 
             if (!context.mounted) return;
 
             if (rol == 'admin') {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => EmployeesPage()),
               );
             } else if (rol == 'user') {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => ComplaintPage()),
+                MaterialPageRoute(
+                  builder: (context) => AnasayfaPage(token: token),
+                ),
               );
-            } else if (rol == null) {
-              // zaten hata gösterildi
             } else {
               _showErrorDialog("Tanımsız kullanıcı rolü: $rol");
             }
@@ -152,7 +161,7 @@ class _LoginPageState extends State<LoginPage> {
         },
       );
 
-  Future<String?> login() async {
+  Future<Map<String, dynamic>?> login() async {
     final url = Uri.parse("http://10.0.2.2:3000/api/login");
 
     try {
@@ -168,7 +177,18 @@ class _LoginPageState extends State<LoginPage> {
       final data = jsonDecode(response.body);
 
       if (data["basarili"] == true) {
-        return data["rol"] ?? "user";
+        final rol = data["rol"] ?? "user";
+        final token = data["token"] ?? "";
+
+        // 🌟 Kullanıcıyı hatırlamak için token ve rol kaydet
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', token);
+        await prefs.setString('rol', rol);
+
+        return {
+          "rol": rol,
+          "token": token,
+        };
       } else {
         _showErrorDialog(data["mesaj"] ?? "Kullanıcı bilgileriniz hatalı!");
         return null;

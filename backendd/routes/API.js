@@ -57,9 +57,7 @@ router.post('/login', (req, res) => {
   const { kullanici_adi, sifre } = req.body;
 
 
-  console.log("Giriş isteği alındı:", { kullanici_adi, sifre });
  
-  console.log("Giriş isteği alındı:", { kullanici_adi, sifre });
  
   if (!kullanici_adi || !sifre) {
     return res.status(400).json({ basarili: false, mesaj: "Kullanıcı adı ve şifre gereklidir." });
@@ -70,6 +68,8 @@ router.post('/login', (req, res) => {
     if (err) return hataYaniti(res);
 
     if (results.length === 0) {
+          console.log("bulmadı")
+
       return res.json({ basarili: false, mesaj: "Kullanıcı bulunamadı." });
     }
 
