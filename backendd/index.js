@@ -29,7 +29,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'proje')));
 app.use(express.static(path.join(__dirname, 'form')));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // Route Kayıtları
 app.use('/api', sifreRoutes);

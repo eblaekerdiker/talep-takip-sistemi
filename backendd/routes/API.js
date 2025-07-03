@@ -94,40 +94,46 @@ router.get('/kullanici', (req, res) => {
 });
 
 // Veri ekle (dosya yükleme dahil)
+
 router.post('/veri-ekle', authenticateToken, upload.single('dosya'), (req, res) => {
+  console.log('BODY:', req.body);
+  console.log('FILE:', req.file);
+
   const { basvuru_no, basvuru_tipi, icerik, isim, soyisim, adres, basvuru_durumu } = req.body;
 
   if (!basvuru_no || !basvuru_tipi || !icerik || !isim || !soyisim || !adres || !basvuru_durumu) {
     return res.status(400).json({ status: "error", message: "Lütfen tüm alanları doldurun." });
   }
 
-  // Dosya yolu varsa al, yoksa null
-  const dosyaYolu = req.file ? req.file.path.replace(/\\/g, '/') : null;
+  // Eğer dosya geldiyse yol hazırla
+  const dosya_yolu = req.file ? `http://localhost:3000/uploads/${req.file.filename}` : null;
 
   const ekleQuery = `
-    INSERT INTO veriler 
-    (basvuru_no, basvuru_tipi, icerik, isim, soyisim, adres, basvuru_durumu, dosya_yolu)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `;
+  INSERT INTO veriler 
+  (basvuru_no, basvuru_tipi, icerik, isim, soyisim, adres, basvuru_durumu, dosya_yolu)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
 
   pool.query(
-    ekleQuery,
-    [basvuru_no, basvuru_tipi, icerik, isim, soyisim, adres, basvuru_durumu, dosyaYolu],
-    (err, result) => {
-      if (err) {
-        console.error('Veritabanı Hatası:', err);
-        return hataYaniti(res, "Veri eklenemedi.");
-      }
+  ekleQuery,
+  [basvuru_no, basvuru_tipi, icerik, isim, soyisim, adres, basvuru_durumu, dosya_yolu],
+  (err, result) => {
+    if (err) {
+      console.error('INSERT HATASI:', err);
+      return hataYaniti(res, "Veri eklenemedi.");
+    }
+
 
       return res.json({ 
         status: "success", 
         message: "Başvuru başarıyla kaydedildi.", 
         id: result.insertId,
-        dosyaYolu
+        dosya_yolu
       });
     }
   );
 });
+
+
 
 // Tüm verileri listele
 router.get('/veriler', (req, res) => {

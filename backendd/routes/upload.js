@@ -1,18 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const multerConfig = require('../middleware/multerConfig');
+const upload = require('../middleware/multerConfig');  // EKLE BUNU
 
-router.post('/single', multerConfig.single('dosya'), (req, res) => {
-  console.log(req)
+router.post('/single', upload.single('dosya'), (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ error: 'Dosya yüklenemedi.' });
+    return res.status(400).json({ status: "error", message: "Dosya yüklenemedi." });
   }
 
-  global.latestUploadedFilePath = req.file.path;
+  const parts = req.file.path.replace(/\\/g, '/').split('/');
+  const filename = parts[parts.length - 1];
+  const publicUrl = `http://localhost:3000/uploads/${filename}`;
 
-  return res.status(200).json({
-    message: 'Dosya başarıyla yüklendi.',
-    path: req.file.path
+  return res.json({
+    status: "success",
+    message: "Dosya başarıyla yüklendi.",
+    path: publicUrl
   });
 });
 
