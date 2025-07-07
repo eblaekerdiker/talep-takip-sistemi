@@ -99,23 +99,22 @@ router.post('/veri-ekle', authenticateToken, upload.single('dosya'), (req, res) 
   console.log('BODY:', req.body);
   console.log('FILE:', req.file);
 
-  const {  basvuru_tipi, icerik, isim,soyisim,konu } = req.body;
+  const {  basvuru_tipi, icerik, kullanici_id ,konu } = req.body;
  //const isim=
   if ( !basvuru_tipi || !icerik || !konu) {
     return res.status(400).json({ status: "error", message: "Lütfen tüm alanları doldurun." });
   }
 
-  // Eğer dosya geldiyse yol hazırla
   const dosya_yolu = req.file ? `http://localhost:3000/uploads/${req.file.filename}` : null;
 
   const ekleQuery = `
   INSERT INTO veriler 
-  ( basvuru_tipi, icerik, isim, soyisim, konu, adres,  dosya_yolu)
-  VALUES (?, ?, ?, ?, ?, ?,?`;
+  ( basvuru_tipi, icerik, kullanici_id, konu, adres, dosya_yolu)
+  VALUES (?, ?, ?, ?, ?, ?)`;
 
   pool.query(
   ekleQuery,
-  [basvuru_no, basvuru_tipi, icerik, isim, soyisim, konu, 'adres', dosya_yolu],
+  [ basvuru_tipi, icerik, kullanici_id, konu, 'adres', dosya_yolu],
   (err, result) => {
     if (err) {
       console.error('INSERT HATASI:', err);
@@ -144,16 +143,31 @@ router.get('/veriler', (req, res) => {
 });
 
 // Başvuru durumu güncelle
+// Flutter'dan gelen "tamamlandı" güncelleme isteği için
 router.put('/veri-guncelle/:id', (req, res) => {
-  const { basvuru_durumu } = req.body;
-  const { id } = req.params;
+  const id = req.params.id;
+  const { basvuru_durumu } = req.body;  // ya da tamamlandi ise, onu burada yakala
 
-  const query = 'UPDATE veriler SET basvuru_durumu = ? WHERE id = ?';
-  pool.query(query, [basvuru_durumu, id], (err) => {
-    if (err) return res.status(500).json({ status: "error", message: "Güncelleme hatası" });
-    res.json({ status: "success", message: "Başvuru durumu güncellendi" });
+  if (typeof basvuru_durumu === 'undefined') {
+    return res.status(400).json({ status: "error", message: "basvuru_durumu alanı eksik" });
+  }
+
+  const query = 'UPDATE veriler SET basvuru_durumu = ? WHERE ID = ?';
+  pool.query(query, [basvuru_durumu, id], (err, result) => {
+    if (err) {
+      console.error('Güncelleme hatası:', err);
+      return res.status(500).json({ status: "error", message: "Güncelleme hatası" });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ status: "error", message: "Kayıt bulunamadı" });
+    }
+
+    res.json({ status: "success", message: "Başarıyla güncellendi" });
   });
 });
+
+
 
 // Başvuru sil
 router.delete('/veri-sil/:id', (req, res) => {

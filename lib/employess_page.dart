@@ -20,14 +20,14 @@ class Complaint {
   });
 
   factory Complaint.fromJson(Map<String, dynamic> json) {
-    return Complaint(
-      id: json['id'],
-      baslik: json['tur'],
-      aciklama: json['aciklama'],
-      tamamlandi: json['tamamlandi'] == 1,
-      departman: json['adres'],
-    );
-  }
+  return Complaint(
+    id: json['ID'] ?? 0,
+    baslik: json['basvuru_tipi'] ?? '',     // doğru alan
+    aciklama: json['icerik'] ?? '',         // doğru alan
+    tamamlandi: json['tamamlandi'] == 1,
+    departman: json['departman'] ?? '',     // doğru alan
+  );
+}
 }
 
 void main() {
@@ -50,7 +50,6 @@ class _EmployeesPageState extends State<EmployeesPage> {
   String filter = 'Tümü';
   List<String> departments = ['Fen İşleri', 'İmar', 'İnsan Kaynakları', 'Bilgi İşlem'];
   String selectedDepartment = 'Departman Seç';
-
   String _searchQuery = ''; 
 
   @override
@@ -61,11 +60,25 @@ class _EmployeesPageState extends State<EmployeesPage> {
 
   Future<void> fetchComplaints() async {
     setState(() => isLoading = true);
-    final url = Uri.parse('http://10.0.2.2:3000/api/complaints');
+    final url = Uri.parse('http://10.0.2.2:3000/api/veriler');
     try {
       final response = await http.get(url);
+
+      print('API STATUS: ${response.statusCode}');
+      print('API RESPONSE: ${response.body}'); // ✅ API çıktısını gör
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+        final decoded = jsonDecode(response.body);
+
+        List<dynamic> data;
+        if (decoded is List) {
+          data = decoded;
+        } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+          data = decoded['data'];
+        } else {
+          throw Exception('Beklenmeyen veri formatı');
+        }
+
         setState(() {
           complaints = data.map((json) => Complaint.fromJson(json)).toList();
           isLoading = false;
@@ -80,7 +93,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
   }
 
   Future<void> markAsCompleted(int id) async {
-    final url = Uri.parse('http://10.0.2.2:3000/api/complaints/$id');
+    final url = Uri.parse('http://10.0.2.2:3000/api/veriler/$id');
     try {
       final response = await http.put(url,
           headers: {"Content-Type": "application/json"},
@@ -100,6 +113,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
 
   List<Complaint> get filteredComplaints {
     List<Complaint> filtered = complaints;
+
     if (selectedDepartment != 'Departman Seç') {
       filtered = filtered.where((c) => c.departman == selectedDepartment).toList();
     }
@@ -108,13 +122,14 @@ class _EmployeesPageState extends State<EmployeesPage> {
     } else if (filter == 'Bekleyen') {
       filtered = filtered.where((c) => !c.tamamlandi).toList();
     }
-    if (_searchQuery.isNotEmpty) {  
+    if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((c) =>
         c.baslik.toLowerCase().contains(_searchQuery.toLowerCase()) ||
         c.aciklama.toLowerCase().contains(_searchQuery.toLowerCase())
       ).toList();
     }
 
+    print('Filtrelenen Şikayet Sayısı: ${filtered.length}');
     return filtered;
   }
 
@@ -177,23 +192,23 @@ class _EmployeesPageState extends State<EmployeesPage> {
     );
   }
 
-  Widget buildSearchField() { 
+  Widget buildSearchField() {
     return Container(
       height: 48,
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: Colors.black, width: 1), 
+        border: Border.all(color: Colors.black, width: 1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: TextField(
         decoration: InputDecoration(
           hintText: 'Ara...',
           border: InputBorder.none,
-          isCollapsed: true, 
-          contentPadding: const EdgeInsets.symmetric(vertical: 14), 
-          suffixIcon: const Icon(Icons.search), 
+          isCollapsed: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          suffixIcon: const Icon(Icons.search),
         ),
         onChanged: (value) {
           setState(() {
@@ -205,7 +220,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
   }
 
   Future<void> _logout() async {
-     await clearUserSession();
+    await clearUserSession();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -247,11 +262,11 @@ class _EmployeesPageState extends State<EmployeesPage> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Row( 
+            Row(
               children: [
-                Expanded(child: buildDepartmentDropdown()), 
+                Expanded(child: buildDepartmentDropdown()),
                 const SizedBox(width: 8),
-                Expanded(child: buildSearchField()), 
+                Expanded(child: buildSearchField()),
               ],
             ),
             Row(
