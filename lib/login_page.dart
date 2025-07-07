@@ -111,7 +111,13 @@ class _LoginPageState extends State<LoginPage> {
             final loginResult = await login();
             if (loginResult == null) return;
 
-            final rol = loginResult["rol"];
+Map<String, dynamic>? userMap;
+
+if (loginResult!= null) {
+  userMap = jsonDecode(loginResult["user"]) as Map<String, dynamic>;
+  // ör: Ali
+}
+            final rol = userMap?["rol"];
             final token = loginResult["token"];
 
             if (!context.mounted) return;
@@ -177,16 +183,16 @@ class _LoginPageState extends State<LoginPage> {
       final data = jsonDecode(response.body);
 
       if (data["basarili"] == true) {
-        final rol = data["rol"] ?? "user";
+        final user = jsonEncode(data["user"]);
         final token = data["token"] ?? "";
 
         // 🌟 Kullanıcıyı hatırlamak için token ve rol kaydet
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
-        await prefs.setString('rol', rol);
+        await prefs.setString('user', jsonEncode(user));
 
         return {
-          "rol": rol,
+          "user": user,
           "token": token,
         };
       } else {

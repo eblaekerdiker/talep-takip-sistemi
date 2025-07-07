@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ComplaintPage extends StatefulWidget {
   final String token;
@@ -57,60 +59,72 @@ class _ComplaintPageState extends State<ComplaintPage> {
     }
   }
 
-  Future<void> _submitForm() async {
-    if (!_formKey.currentState!.validate()) return;
+Future<void> _submitForm() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    final uri = Uri.parse('http://10.0.2.2:3000/api/veri-ekle');
-    final request = http.MultipartRequest('POST', uri)
-      ..headers['Authorization'] = 'Bearer ${widget.token}'
-      ..fields['basvuru_no'] = DateTime.now().millisecondsSinceEpoch.toString()
-      ..fields['basvuru_tipi'] = _selectedType
-      ..fields['icerik'] = _descriptionController.text
-      ..fields['isim'] = 'Test'
-      ..fields['soyisim'] = 'Kullanici'
-      ..fields['adres'] = 'Adres Bilgisi'
-      ..fields['basvuru_durumu'] = 'Beklemede';
+  final prefs = await SharedPreferences.getInstance();
+  final userString = await prefs.getString('user');
+  Map<String, dynamic>? userMap;
 
-    if (_selectedImage != null) {
-      final imageStream = http.ByteStream(_selectedImage!.openRead());
-      final imageLength = await _selectedImage!.length();
-      final multipartFile = http.MultipartFile(
-        'image',
-        imageStream,
-        imageLength,
-        filename: _selectedImage!.path.split('/').last,
-      );
-      request.files.add(multipartFile);
-    }
-
+  if (userString != null) {
+    print('SharedPreferences user string: $userString');
     try {
-      final response = await request.send();
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        Navigator.pop(context, {
-          'basvuru_no': request.fields['basvuru_no'],
-          'basvuru_tipi': _selectedType,
-          'icerik': _descriptionController.text,
-        });
-      } else {
-        final respStr = await response.stream.bytesToString();
-        throw Exception('Sunucu hatası: ${response.statusCode}\n$respStr');
-      }
+      final firstDecode = jsonDecode(userString);
+      userMap = jsonDecode(firstDecode) as Map<String, dynamic>;
     } catch (e) {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Hata'),
-          content: Text('Gönderim başarısız oldu: $e'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Tamam'),
-            ),
-          ],
-        ),
-      );
+      print('JSON decode hatası: $e');
     }
   }
+
+  final uri = Uri.parse('http://10.0.2.2:3000/api/veri-ekle');
+  final request = http.MultipartRequest('POST', uri)
+    ..headers['Authorization'] = 'Bearer ${widget.token}'
+    ..fields['basvuru_tipi'] = _selectedType
+    ..fields['icerik'] = _descriptionController.text
+    ..fields['isim'] = userMap?['isim'] ?? 'Test'
+    ..fields['soyisim'] = userMap?['soyisim'] ?? 'Kullanici'
+    ..fields['konu'] = _subjectController.text;
+
+  if (_selectedImage != null) {
+    final imageStream = http.ByteStream(_selectedImage!.openRead());
+    final imageLength = await _selectedImage!.length();
+    final multipartFile = http.MultipartFile(
+      'dosya',
+      imageStream,
+      imageLength,
+      filename: _selectedImage!.path.split('/').last,
+    );
+    request.files.add(multipartFile);
+  }
+
+  try {
+    final response = await request.send();
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      Navigator.pop(context, {
+        'basvuru_tipi': _selectedType,
+        'icerik': _descriptionController.text,
+        'konu': _subjectController.text,
+      });
+    } else {
+      final respStr = await response.stream.bytesToString();
+      throw Exception('Sunucu hatası: ${response.statusCode}\n$respStr');
+    }
+  } catch (e) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hata'),
+        content: Text('Gönderim başarısız oldu: $e'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Tamam'),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {

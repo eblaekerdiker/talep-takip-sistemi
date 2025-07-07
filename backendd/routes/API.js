@@ -77,7 +77,7 @@ router.post('/login', (req, res) => {
 
       if (isMatch) {
         const token = jwt.sign({ id: user.id, kullanici_adi: user.kullanici_adi }, SECRET_KEY, { expiresIn: '2h' });
-        return res.status(200).json({ basarili: true, token, rol: user.rol, mesaj: "Giriş başarılı." });
+        return res.status(200).json({ basarili: true, token, user: user, mesaj: "Giriş başarılı." });
       } else {
         return res.status(401).json({ basarili: false, mesaj: "Şifre yanlış." });
       }
@@ -99,9 +99,9 @@ router.post('/veri-ekle', authenticateToken, upload.single('dosya'), (req, res) 
   console.log('BODY:', req.body);
   console.log('FILE:', req.file);
 
-  const { basvuru_no, basvuru_tipi, icerik, isim, soyisim, adres, basvuru_durumu } = req.body;
-
-  if (!basvuru_no || !basvuru_tipi || !icerik || !isim || !soyisim || !adres || !basvuru_durumu) {
+  const {  basvuru_tipi, icerik, isim,soyisim,konu } = req.body;
+ //const isim=
+  if ( !basvuru_tipi || !icerik || !konu) {
     return res.status(400).json({ status: "error", message: "Lütfen tüm alanları doldurun." });
   }
 
@@ -110,12 +110,12 @@ router.post('/veri-ekle', authenticateToken, upload.single('dosya'), (req, res) 
 
   const ekleQuery = `
   INSERT INTO veriler 
-  (basvuru_no, basvuru_tipi, icerik, isim, soyisim, adres, basvuru_durumu, dosya_yolu)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+  ( basvuru_tipi, icerik, isim, soyisim, konu, adres,  dosya_yolu)
+  VALUES (?, ?, ?, ?, ?, ?,?`;
 
   pool.query(
   ekleQuery,
-  [basvuru_no, basvuru_tipi, icerik, isim, soyisim, adres, basvuru_durumu, dosya_yolu],
+  [basvuru_no, basvuru_tipi, icerik, isim, soyisim, konu, 'adres', dosya_yolu],
   (err, result) => {
     if (err) {
       console.error('INSERT HATASI:', err);
