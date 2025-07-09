@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../middleware/multerConfig');  // EKLE BUNU
+const upload = require('../middleware/multerConfig');
 
 router.post('/single', upload.single('dosya'), (req, res) => {
   if (!req.file) {

@@ -32,9 +32,9 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        final List data = json.decode(response.body);
+        final List veriler = json.decode(response.body);
         setState(() {
-          complaints = List<Map<String, dynamic>>.from(data);
+          complaints = List<Map<String, dynamic>>.from(veriler);
           isLoading = false;
         });
       } else {
@@ -56,6 +56,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
 
     if (result != null) {
       fetchComplaints();
+      
     }
   }
 
@@ -66,7 +67,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
         builder: (context) => ComplaintPage(
           token: widget.token,
           existingComplaint: {
-            'id': item['id'].toString(),
+            'ID': item['ID'].toString(),
             'tip': item['tur'] ?? 'Talep',
             'konu': item['konu'] ?? '',
             'aciklama': item['aciklama'] ?? '',
@@ -88,11 +89,11 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
         content: const Text('Bu işlem geri alınamaz.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Evet', style: TextStyle(color: Colors.red)) ,
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(context, false),
             child: const Text('Hayır', style: TextStyle(color: Colors.red)),
           ),
         ],
@@ -105,14 +106,15 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
   }
 
   Future<void> _deleteComplaint(int id) async {
-    final url = Uri.parse('http://10.0.2.2:3000/api/veriler/$id');
+    
+    final url = Uri.parse('http://10.0.2.2:3000/api/veri-sil/$id');
 
     try {
       final response = await http.delete(url);
 
       if (response.statusCode == 200) {
         setState(() {
-          complaints.removeWhere((item) => item['id'] == id);
+          complaints.removeWhere((item) => item['ID'] == id);
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Kayıt başarıyla silindi')),
@@ -171,9 +173,30 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
                             onPressed: () => _navigateToEditPage(item),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.black),
-                            onPressed: () => _confirmAndDelete(int.tryParse(item['id'].toString()) ?? 0),
-                          ),
+  icon: const Icon(Icons.delete, color: Colors.black),
+  onPressed: () {
+    final rawId = item['ID'];
+
+    if (rawId != null) {
+      final id = rawId is int ? rawId : int.tryParse(rawId.toString());
+
+      if (id != null) {
+        _confirmAndDelete(id);
+      } else {
+        print("Geçersiz ID: $rawId");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Geçersiz ID')),
+        );
+      }
+    } else {
+      print("ID null geldi.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Silinecek kayıt bulunamadı')),
+      );
+    }
+  },
+),
+
                         ],
                       ),
                     );

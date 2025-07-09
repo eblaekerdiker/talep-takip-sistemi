@@ -97,7 +97,8 @@ class _EmployeesPageState extends State<EmployeesPage> {
     try {
       final response = await http.put(url,
           headers: {"Content-Type": "application/json"},
-          body: jsonEncode({"tamamlandi": 1}));
+          body: jsonEncode({"basvuru_durumu": "tamamlandi"}),
+);
 
       if (response.statusCode == 200) {
         setState(() {

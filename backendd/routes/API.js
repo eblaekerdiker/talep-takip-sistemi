@@ -144,7 +144,7 @@ router.get('/veriler', (req, res) => {
 
 // Başvuru durumu güncelle
 // Flutter'dan gelen "tamamlandı" güncelleme isteği için
-router.put('/veri-guncelle/:id', (req, res) => {
+router.put('/veriler/:ID', (req, res) => {
   const id = req.params.id;
   const { basvuru_durumu } = req.body;  // ya da tamamlandi ise, onu burada yakala
 
@@ -168,12 +168,11 @@ router.put('/veri-guncelle/:id', (req, res) => {
 });
 
 
-
 // Başvuru sil
 router.delete('/veri-sil/:id', (req, res) => {
   const { id } = req.params;
 
-  const query = 'DELETE FROM veriler WHERE id = ?';
+  const query = 'DELETE FROM veriler WHERE ID = ?';
   pool.query(query, [id], (err) => {
     if (err) return res.status(500).json({ status: "error", message: "Silme hatası" });
     res.json({ status: "success", message: "Başvuru silindi" });
