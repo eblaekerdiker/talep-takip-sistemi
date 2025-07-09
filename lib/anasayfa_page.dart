@@ -70,7 +70,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
             'ID': item['ID'].toString(),
             'tip': item['tur'] ?? 'Talep',
             'konu': item['konu'] ?? '',
-            'aciklama': item['aciklama'] ?? '',
+            'aciklama': item['icerik'] ?? '',
           },
         ),
       ),
@@ -161,7 +161,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
                     final item = complaints[index];
                     return ListTile(
                       title: Text(item['konu'] ?? 'Konu yok'),
-                      subtitle: Text(item['aciklama'] ?? 'Açıklama yok'),
+                      subtitle: Text(item['icerik'] ?? 'içerik yok'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
