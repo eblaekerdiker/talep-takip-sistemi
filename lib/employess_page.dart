@@ -65,12 +65,12 @@ class _EmployeesPageState extends State<EmployeesPage> {
 
   Future<void> fetchComplaints() async {
     setState(() => isLoading = true);
-    final url = Uri.parse('http:// 127.0.0.1:3000/api/veriler');
+    final url = Uri.parse('http:// 10.0.2.2:3000/api/veriler');
     try {
       final response = await http.get(url);
 
       print('API STATUS: ${response.statusCode}');
-      print('API RESPONSE: ${response.body}'); // ✅ API çıktısını gör
+      print('API RESPONSE: ${response.body}'); //  API çıktısını gör
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -99,7 +99,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
   }
 
   Future<void> markAsCompleted(int id) async {
-    final url = Uri.parse('http://127.0.0.1:3000/api/veriler/$id');
+    final url = Uri.parse('http://10.0.2.2:3000/api/veriler/$id');
     try {
       final response = await http.put(
         url,

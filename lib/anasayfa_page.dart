@@ -41,7 +41,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
   }
 
   Future<void> fetchComplaints() async {
-    final url = Uri.parse('http:// 127.0.0.1:3000/api/veriler');
+    final url = Uri.parse('http:// 10.0.2.2:3000/api/veriler');
 
     try {
       final response = await http.get(url);
@@ -120,7 +120,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
   }
 
   Future<void> _deleteComplaint(int id) async {
-    final url = Uri.parse('http:// 127.0.0.1:3000/api/veri-sil/$id');
+    final url = Uri.parse('http:// 10.0.2.2:3000/api/veri-sil/$id');
 
     try {
       final response = await http.delete(url);

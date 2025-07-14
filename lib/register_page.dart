@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../utils/otp_verification_page.dart';
+import '../complaint_page.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -18,7 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String password = '';
 
   Future<void> register() async {
-    final url = Uri.parse("http://127.0.0.1:3000/api/register");
+    final url = Uri.parse("http://10.0.2.2:3000/api/register");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -32,12 +34,31 @@ class _RegisterPageState extends State<RegisterPage> {
     );
 
     final res = json.decode(response.body);
+
     if (res["status"] == "success") {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Kayıt başarılı. Doğrulama kodu gönderildi."),
+        ),
+      );
+
+      Navigator.pushReplacement(
         context,
-      ).showSnackBar(const SnackBar(content: Text("Kayıt başarılı")));
-      Navigator.pop(context);
+        MaterialPageRoute(
+          builder: (_) => OtpVerificationPage(
+            phoneNumber: phone,
+            onCodeSubmitted: (code) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ComplaintPage(token: 'KULLANICI_TOKENINIZ'),
+                ),
+              );
+            },
+          ),
+        ),
+      );
     } else {
       final errorMessage =
           res["message"] ?? "Sunucudan bir hata yanıtı alınamadı.";
@@ -51,16 +72,15 @@ class _RegisterPageState extends State<RegisterPage> {
   InputDecoration inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.grey), // normal etiket rengi
-      floatingLabelStyle: TextStyle(
-        color: Colors.grey,
-      ), // focus olunca da aynı renk
-      border: OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
-
-      enabledBorder: OutlineInputBorder(
+      labelStyle: const TextStyle(color: Colors.grey),
+      floatingLabelStyle: const TextStyle(color: Colors.grey),
+      border: const OutlineInputBorder(
         borderSide: BorderSide(color: Colors.black),
       ),
-      focusedBorder: OutlineInputBorder(
+      enabledBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.black),
+      ),
+      focusedBorder: const OutlineInputBorder(
         borderSide: BorderSide(color: Colors.black, width: 2),
       ),
     );
@@ -70,7 +90,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white, // Mavi arka plan kaldırıldı
+        backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         title: Row(

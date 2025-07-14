@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../utils/mahalle_dropdown.dart';
+import '../utils/mahalle_model.dart';
 
 class ComplaintPage extends StatefulWidget {
   final String token;
@@ -26,6 +28,9 @@ class _ComplaintPageState extends State<ComplaintPage> {
   Uint8List? _webImage;
 
   final List<String> _types = ['Talep', 'Şikayet'];
+
+  Mahalle? _selectedMahalle;
+  Yol? _selectedYol;
 
   @override
   void initState() {
@@ -69,12 +74,28 @@ class _ComplaintPageState extends State<ComplaintPage> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_selectedMahalle == null || _selectedYol == null) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Eksik Bilgi'),
+          content: const Text('Lütfen mahalle ve sokak seçiniz.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tamam'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final userString = await prefs.getString('user');
     Map<String, dynamic>? userMap;
 
     if (userString != null) {
-      print('SharedPreferences user string: $userString');
       try {
         final firstDecode = jsonDecode(userString);
         userMap = jsonDecode(firstDecode) as Map<String, dynamic>;
@@ -83,14 +104,17 @@ class _ComplaintPageState extends State<ComplaintPage> {
       }
     }
 
-    final uri = Uri.parse('http://127.0.0.1:3000/api/veri-ekle');
+    final uri = Uri.parse('http://10.0.2.2:3000/api/veri-ekle');
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer ${widget.token}'
       ..fields['basvuru_tipi'] = _selectedType
       ..fields['icerik'] = _descriptionController.text
       ..fields['isim'] = userMap?['isim'] ?? 'Test'
       ..fields['soyisim'] = userMap?['soyisim'] ?? 'Kullanici'
-      ..fields['konu'] = _subjectController.text;
+      ..fields['konu'] = _subjectController.text
+      ..fields['mahalle'] = _selectedMahalle!.r
+      ..fields['sokak'] = _selectedYol!.name
+      ..fields['sokak_tipi'] = _selectedYol!.type;
 
     if (!kIsWeb && _selectedImage != null) {
       final imageStream = http.ByteStream(_selectedImage!.openRead());
@@ -111,6 +135,8 @@ class _ComplaintPageState extends State<ComplaintPage> {
           'basvuru_tipi': _selectedType,
           'icerik': _descriptionController.text,
           'konu': _subjectController.text,
+          'mahalle': _selectedMahalle!.r,
+          'sokak': _selectedYol!.name,
         });
       } else {
         final respStr = await response.stream.bytesToString();
@@ -160,6 +186,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
                 ),
               ),
               const SizedBox(height: 30),
+
               DropdownButtonFormField<String>(
                 value: _selectedType,
                 items: _types
@@ -176,7 +203,21 @@ class _ComplaintPageState extends State<ComplaintPage> {
                   focusedBorder: _blackBorder,
                 ),
               ),
+
               const SizedBox(height: 15),
+
+              // İşte mahalle+sokak dropdown buraya geldi
+              MahalleDropdown(
+                onSelectionChanged: (mahalle, yol) {
+                  setState(() {
+                    _selectedMahalle = mahalle;
+                    _selectedYol = yol;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 15),
+
               TextFormField(
                 controller: _subjectController,
                 decoration: InputDecoration(
@@ -189,7 +230,9 @@ class _ComplaintPageState extends State<ComplaintPage> {
                     ? 'Konu içeriğini giriniz'
                     : null,
               ),
+
               const SizedBox(height: 15),
+
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 5,
@@ -202,7 +245,9 @@ class _ComplaintPageState extends State<ComplaintPage> {
                 validator: (value) =>
                     value == null || value.isEmpty ? 'Açıklama giriniz' : null,
               ),
+
               const SizedBox(height: 15),
+
               Row(
                 children: [
                   Expanded(
@@ -256,11 +301,14 @@ class _ComplaintPageState extends State<ComplaintPage> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 20),
+
               if (kIsWeb && _webImage != null)
                 SizedBox(height: 150, child: Image.memory(_webImage!))
               else if (!kIsWeb && _selectedImage != null)
                 SizedBox(height: 150, child: Image.file(_selectedImage!)),
+
               const SizedBox(height: 10),
             ],
           ),
