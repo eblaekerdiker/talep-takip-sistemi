@@ -10,6 +10,7 @@ const pool = require('./config/db');
 require('dotenv').config();
 
 
+
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express')
 
@@ -18,7 +19,6 @@ const uploadRoutes = require('./routes/upload');  //  YENİ EKLEDİK
 
 const app = express();
 const port = 3000;
-
 
 
 
@@ -36,6 +36,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api', sifreRoutes);
 app.use('/api', apiRoutes);
 app.use('/api', uploadRoutes);
+app.use('/api/email-verification', require('./routes/emailVerification'));
 
 // Swagger ayarları
 const swaggerOptions = {

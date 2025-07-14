@@ -99,7 +99,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
   }
 
   Future<void> markAsCompleted(int id) async {
-    final url = Uri.parse('http://127.0.0.1:3000/api/veriler/$id');
+    final url = Uri.parse('http://10.0.2.2:3000/api/veriler/$id');
     try {
       final response = await http.put(
         url,
