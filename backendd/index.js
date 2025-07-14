@@ -15,7 +15,7 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express')
 
 const sifreRoutes = require('./routes/passwordReset');
-const uploadRoutes = require('./routes/upload');  //  YENİ EKLEDİK
+const uploadRoutes = require('./routes/upload');  
 
 const app = express();
 const port = 3000;

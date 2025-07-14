@@ -4,13 +4,18 @@ import 'package:flutter/services.dart';
 import '../utils/mahalle_model.dart';
 
 class MahalleDropdown extends StatefulWidget {
+  final Function(Mahalle, Yol) onSelectionChanged;
+
+  const MahalleDropdown({super.key, required this.onSelectionChanged});
+
   @override
-  _MahalleDropdownState createState() => _MahalleDropdownState();
+  State<MahalleDropdown> createState() => _MahalleDropdownState();
 }
 
 class _MahalleDropdownState extends State<MahalleDropdown> {
   List<Mahalle> mahalleler = [];
-  Mahalle? secilenMahalle;
+  Mahalle? seciliMahalle;
+  Yol? seciliYol;
 
   @override
   void initState() {
@@ -29,39 +34,55 @@ class _MahalleDropdownState extends State<MahalleDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Mahalle Seçimi")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            DropdownButton<Mahalle>(
-              value: secilenMahalle,
-              hint: Text('Mahalle Seçin'),
-              isExpanded: true,
-              items: mahalleler.map((mahalle) {
-                return DropdownMenuItem(value: mahalle, child: Text(mahalle.r));
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  secilenMahalle = value;
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-            if (secilenMahalle != null)
-              Expanded(
-                child: ListView.builder(
-                  itemCount: secilenMahalle!.m.length,
-                  itemBuilder: (context, index) {
-                    final yol = secilenMahalle!.m[index];
-                    return ListTile(title: Text("${yol.name} (${yol.type})"));
-                  },
-                ),
-              ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<Mahalle>(
+          value: seciliMahalle,
+          hint: const Text('Mahalle Seçin'),
+          isExpanded: true,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: 'Mahalle',
+          ),
+          items: mahalleler.map((mahalle) {
+            return DropdownMenuItem(value: mahalle, child: Text(mahalle.r));
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              seciliMahalle = value;
+              seciliYol = null;
+            });
+          },
+          validator: (value) => value == null ? 'Mahalle seçiniz' : null,
         ),
-      ),
+        const SizedBox(height: 16),
+        if (seciliMahalle != null)
+          DropdownButtonFormField<Yol>(
+            value: seciliYol,
+            hint: const Text('Sokak Seçin'),
+            isExpanded: true,
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              labelText: 'Sokak',
+            ),
+            items: seciliMahalle!.m.map((yol) {
+              return DropdownMenuItem(
+                value: yol,
+                child: Text('${yol.name} (${yol.type})'),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                seciliYol = value;
+              });
+              if (value != null && seciliMahalle != null) {
+                widget.onSelectionChanged(seciliMahalle!, value);
+              }
+            },
+            validator: (value) => value == null ? 'Sokak seçiniz' : null,
+          ),
+      ],
     );
   }
 }

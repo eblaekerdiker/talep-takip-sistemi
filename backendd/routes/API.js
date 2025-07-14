@@ -23,7 +23,7 @@ router.post('/register', (req, res) => {
   if (!validator.isEmail(eposta)) {
     return res.status(400).json({ status: "error", message: "Geçerli bir e-posta girin." });
   }
-  const sifreRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^\s]{8,}$/;
+  const sifreRegex = /^(?=.[a-z])(?=.[A-Z])(?=.*\d)[^\s]{8,}$/;
   if (!sifreRegex.test(sifre)) {
     return res.status(400).json({ status: "error", message: "Şifre en az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 sayı içermeli. Boşluk içeremez." });
   }
@@ -99,7 +99,12 @@ router.post('/veri-ekle', authenticateToken, upload.single('dosya'), (req, res) 
   const { basvuru_tipi, icerik, kullanici_id, konu, mahalle, sokak } = req.body;
 
   const adres = `${mahalle}, ${sokak}`;
-  const dosya_yolu = req.file ? `http://localhost:3000/uploads/${req.file.filename}` : null;
+
+
+  const dosya_yolu = req.file
+  ? `http://localhost:3000/uploads/${req.file.filename}`
+  : null;
+
 
   if (!kullanici_id || !basvuru_tipi || !icerik || !konu || !mahalle || !sokak) {
     return res.status(400).json({ status: "error", message: "Lütfen tüm alanları doldurun." });
@@ -131,6 +136,7 @@ router.post('/veri-ekle', authenticateToken, upload.single('dosya'), (req, res) 
 
 // Tüm verileri listele
 router.get('/veriler', (req, res) => {
+
   console.log("Gelen query:", req.query);
   const { kullanici_id } = req.query;
   if (!kullanici_id) {
