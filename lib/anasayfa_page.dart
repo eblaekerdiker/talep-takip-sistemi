@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:talepsikayet/utils/shared.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
+
+import 'package:talepsikayet/utils/shared.dart';
+import 'utils/mahalle_model.dart';
 import 'complaint_page.dart';
-import 'login_page.dart'; // LoginPage'i import ediyoruz
+import 'login_page.dart';
 
 class AnasayfaPage extends StatefulWidget {
   final String token;
@@ -19,14 +22,26 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
   List<Map<String, dynamic>> complaints = [];
   bool isLoading = true;
 
+  List<Mahalle> mahalleler = [];
+  Mahalle? secilenMahalle;
+
   @override
   void initState() {
     super.initState();
     fetchComplaints();
+    _veriyiYukle();
+  }
+
+  Future<void> _veriyiYukle() async {
+    final jsonStr = await rootBundle.loadString('assets/csbm.json');
+    final jsonList = json.decode(jsonStr) as List;
+    setState(() {
+      mahalleler = jsonList.map((e) => Mahalle.fromJson(e)).toList();
+    });
   }
 
   Future<void> fetchComplaints() async {
-    final url = Uri.parse('http://10.0.2.2:3000/api/veriler');
+    final url = Uri.parse('http:// 127.0.0.1:3000/api/veriler');
 
     try {
       final response = await http.get(url);
@@ -56,7 +71,6 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
 
     if (result != null) {
       fetchComplaints();
-      
     }
   }
 
@@ -90,7 +104,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Evet', style: TextStyle(color: Colors.red)) ,
+            child: const Text('Evet', style: TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -106,8 +120,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
   }
 
   Future<void> _deleteComplaint(int id) async {
-    
-    final url = Uri.parse('http://10.0.2.2:3000/api/veri-sil/$id');
+    final url = Uri.parse('http:// 127.0.0.1:3000/api/veri-sil/$id');
 
     try {
       final response = await http.delete(url);
@@ -151,67 +164,126 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : complaints.isEmpty
-              ? const Center(child: Text('Henüz talep/şikayet oluşturulmadı'))
-              : ListView.builder(
-                  itemCount: complaints.length,
-                  itemBuilder: (context, index) {
-                    final item = complaints[index];
+      body: Column(
+        children: [
+          if (mahalleler.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: DropdownButton<Mahalle>(
+                isExpanded: true,
+                hint: const Text("Mahalle Seçin"),
+                value: secilenMahalle,
+                items: mahalleler.map((m) {
+                  return DropdownMenuItem(value: m, child: Text(m.r));
+                }).toList(),
+                onChanged: (m) {
+                  setState(() => secilenMahalle = m);
+                },
+              ),
+            ),
+          if (secilenMahalle != null)
+            Expanded(
+              flex: 0,
+              child: SizedBox(
+                height: 150,
+                child: ListView(
+                  children: secilenMahalle!.m.map((yol) {
                     return ListTile(
-                      title: Text(item['konu'] ?? 'Konu yok'),
-                      subtitle: Text(item['icerik'] ?? 'içerik yok'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          TextButton(
-                            child: const Text('Düzenle'),
-                            style: ElevatedButton.styleFrom(
-                              foregroundColor: Colors.black,
-                            ),
-                            onPressed: () => _navigateToEditPage(item),
-                          ),
-                          IconButton(
-  icon: const Icon(Icons.delete, color: Colors.black),
-  onPressed: () {
-    final rawId = item['ID'];
-
-    if (rawId != null) {
-      final id = rawId is int ? rawId : int.tryParse(rawId.toString());
-
-      if (id != null) {
-        _confirmAndDelete(id);
-      } else {
-        print("Geçersiz ID: $rawId");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Geçersiz ID')),
-        );
-      }
-    } else {
-      print("ID null geldi.");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silinecek kayıt bulunamadı')),
-      );
-    }
-  },
-),
-
-                        ],
-                      ),
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      title: Text("${yol.name} (${yol.type})"),
                     );
-                  },
+                  }).toList(),
                 ),
+              ),
+            ),
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : complaints.isEmpty
+                ? const Center(child: Text('Henüz talep/şikayet oluşturulmadı'))
+                : ListView.builder(
+                    itemCount: complaints.length,
+                    itemBuilder: (context, index) {
+                      final item = complaints[index];
+                      return ListTile(
+                        title: Text(item['konu'] ?? 'Konu yok'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item['icerik'] ?? 'içerik yok'),
+                            const SizedBox(height: 8),
+                            if (item['dosya_url'] != null &&
+                                item['dosya_url'].toString().isNotEmpty)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  item['dosya_url'],
+                                  height: 150,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Text('Resim yüklenemedi'),
+                                ),
+                              ),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextButton(
+                              onPressed: () => _navigateToEditPage(item),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.black,
+                              ),
+                              child: const Text('Düzenle'),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete,
+                                color: Colors.black,
+                              ),
+                              onPressed: () {
+                                final rawId = item['ID'];
+                                if (rawId != null) {
+                                  final id = rawId is int
+                                      ? rawId
+                                      : int.tryParse(rawId.toString());
+                                  if (id != null) {
+                                    _confirmAndDelete(id);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Geçersiz ID'),
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Silinecek kayıt bulunamadı',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
       floatingActionButton: Align(
         alignment: Alignment.bottomRight,
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: FloatingActionButton.extended(
             onPressed: _navigateToCreatePage,
-            label: const Text(
-              'Oluştur',
-              style: TextStyle(color: Colors.red),
-            ),
+            label: const Text('Oluştur', style: TextStyle(color: Colors.red)),
             icon: const Icon(Icons.add, color: Colors.red),
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(

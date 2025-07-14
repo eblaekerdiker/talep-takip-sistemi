@@ -13,7 +13,7 @@ if (!fs.existsSync(uploadDir)) {
 // Desteklenen dosya tipleri
 const fileFilter = (req, file, cb) => {
   console.log('Gelen dosya tipi:', file.mimetype); 
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf' , 'image/heic' , 'image/jpg' , 'application/octet-stream'];
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf' , 'image/heic' , 'image/jpg' , 'application/octet-stream', 'Image.asset', 'Image.network'];
   if (!allowedTypes.includes(file.mimetype)) {
     return cb(new Error('Yalnızca JPEG, PNG, GIF ve PDF dosyaları yüklenebilir.'));
   }

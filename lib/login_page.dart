@@ -33,10 +33,7 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               children: <Widget>[
                 const SizedBox(height: 20),
-                Image.asset(
-                  'assets/mezitbellogo.png',
-                  height: 100,
-                ),
+                Image.asset('assets/mezitbellogo.png', height: 100),
                 const SizedBox(height: 30),
                 TextFormField(
                   cursorColor: Colors.black,
@@ -45,8 +42,9 @@ class _LoginPageState extends State<LoginPage> {
                       borderSide: BorderSide(color: Colors.black),
                     ),
                     labelText: 'Kullanıcı Adı',
-                    labelStyle:
-                        TextStyle(color: Color.fromARGB(255, 170, 171, 172)),
+                    labelStyle: TextStyle(
+                      color: Color.fromARGB(255, 170, 171, 172),
+                    ),
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
@@ -68,8 +66,9 @@ class _LoginPageState extends State<LoginPage> {
                       borderSide: BorderSide(color: Colors.black),
                     ),
                     labelText: 'Şifre',
-                    labelStyle:
-                        TextStyle(color: Color.fromARGB(255, 170, 171, 172)),
+                    labelStyle: TextStyle(
+                      color: Color.fromARGB(255, 170, 171, 172),
+                    ),
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
@@ -86,10 +85,7 @@ class _LoginPageState extends State<LoginPage> {
                 _loginButton(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _registerButton(),
-                    _forgotPasswordButton(),
-                  ],
+                  children: [_registerButton(), _forgotPasswordButton()],
                 ),
               ],
             ),
@@ -100,84 +96,73 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _loginButton() => ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.black,
-        ),
-        child: const Text("Giriş Yap"),
-        onPressed: () async {
-          if (_formKey.currentState!.validate()) {
-            _formKey.currentState!.save();
+    style: ElevatedButton.styleFrom(foregroundColor: Colors.black),
+    child: const Text("Giriş Yap"),
+    onPressed: () async {
+      if (_formKey.currentState!.validate()) {
+        _formKey.currentState!.save();
 
-            final loginResult = await login();
-            if (loginResult == null) return;
+        final loginResult = await login();
+        if (loginResult == null) return;
 
-Map<String, dynamic>? userMap;
+        Map<String, dynamic>? userMap;
 
-if (loginResult!= null) {
-  userMap = jsonDecode(loginResult["user"]) as Map<String, dynamic>;
-  // ör: Ali
-}
-            final rol = userMap?["rol"];
-            final token = loginResult["token"];
+        if (loginResult != null) {
+          userMap = jsonDecode(loginResult["user"]) as Map<String, dynamic>;
+          // ör: Ali
+        }
+        final rol = userMap?["rol"];
+        final token = loginResult["token"];
 
-            if (!context.mounted) return;
+        if (!context.mounted) return;
 
-            if (rol == 'admin') {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => EmployeesPage()),
-              );
-            } else if (rol == 'user') {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AnasayfaPage(token: token),
-                ),
-              );
-            } else {
-              _showErrorDialog("Tanımsız kullanıcı rolü: $rol");
-            }
-          }
-        },
-      );
+        if (rol == 'admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => EmployeesPage()),
+          );
+        } else if (rol == 'user') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AnasayfaPage(token: token)),
+          );
+        } else {
+          _showErrorDialog("Tanımsız kullanıcı rolü: $rol");
+        }
+      }
+    },
+  );
 
   Widget _registerButton() => ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.black,
-        ),
-        child: const Text("Kayıt Ol"),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const RegisterPage()),
-          );
-        },
+    style: ElevatedButton.styleFrom(foregroundColor: Colors.black),
+    child: const Text("Kayıt Ol"),
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const RegisterPage()),
       );
+    },
+  );
 
   Widget _forgotPasswordButton() => ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          foregroundColor: Colors.black,
-        ),
-        child: const Text("Şifremi Unuttum"),
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
-          );
-        },
+    style: ElevatedButton.styleFrom(foregroundColor: Colors.black),
+    child: const Text("Şifremi Unuttum"),
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
       );
+    },
+  );
 
   Future<Map<String, dynamic>?> login() async {
-    final url = Uri.parse("http://10.0.2.2:3000/api/login");
+    final url = Uri.parse("http://127.0.0.1:3000/api/login");
 
     try {
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "kullanici_adi": username,
-          "sifre": password,
-        }),
+        body: jsonEncode({"kullanici_adi": username, "sifre": password}),
       );
 
       final data = jsonDecode(response.body);
@@ -191,10 +176,7 @@ if (loginResult!= null) {
         await prefs.setString('token', token);
         await prefs.setString('user', jsonEncode(user));
 
-        return {
-          "user": user,
-          "token": token,
-        };
+        return {"user": user, "token": token};
       } else {
         _showErrorDialog(data["mesaj"] ?? "Kullanıcı bilgileriniz hatalı!");
         return null;

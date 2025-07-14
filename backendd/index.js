@@ -48,7 +48,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: `http://localhost:${port}`,
+        url: `http://10.0.2.2:3000${port}`,
       },
     ],
   },
@@ -68,6 +68,8 @@ app.get('/', (req, res) => {
 app.use((err, req, res, next) => {
   console.error("HATA:", err.stack);
   res.status(500).json({ status: 'error', message: 'Sunucu hatası!' });
+   console.log(`${req.method} ${req.path} - Body:`, req.body);
+  next();
 });
 
 // Sunucuyu başlat

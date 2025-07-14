@@ -20,23 +20,23 @@ class Complaint {
   });
 
   factory Complaint.fromJson(Map<String, dynamic> json) {
-  return Complaint(
-    id: json['ID'] ?? 0,
-    baslik: json['basvuru_tipi'] ?? '',     // doğru alan
-    aciklama: json['icerik'] ?? '',         // doğru alan
-    tamamlandi: json['tamamlandi'] == 1,
-    departman: json['departman'] ?? '',     // doğru alan
-  );
-}
+    return Complaint(
+      id: json['ID'] ?? 0,
+      baslik: json['basvuru_tipi'] ?? '', // doğru alan
+      aciklama: json['icerik'] ?? '', // doğru alan
+      tamamlandi: json['tamamlandi'] == 1,
+      departman: json['departman'] ?? '', // doğru alan
+    );
+  }
 }
 
 void main() {
-  runApp(MaterialApp(
-    theme: ThemeData(
-      scaffoldBackgroundColor: Colors.white,
+  runApp(
+    MaterialApp(
+      theme: ThemeData(scaffoldBackgroundColor: Colors.white),
+      home: EmployeesPage(),
     ),
-    home: EmployeesPage(),
-  ));
+  );
 }
 
 class EmployeesPage extends StatefulWidget {
@@ -48,9 +48,14 @@ class _EmployeesPageState extends State<EmployeesPage> {
   List<Complaint> complaints = [];
   bool isLoading = true;
   String filter = 'Tümü';
-  List<String> departments = ['Fen İşleri', 'İmar', 'İnsan Kaynakları', 'Bilgi İşlem'];
+  List<String> departments = [
+    'Fen İşleri',
+    'İmar',
+    'İnsan Kaynakları',
+    'Bilgi İşlem',
+  ];
   String selectedDepartment = 'Departman Seç';
-  String _searchQuery = ''; 
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -60,7 +65,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
 
   Future<void> fetchComplaints() async {
     setState(() => isLoading = true);
-    final url = Uri.parse('http://10.0.2.2:3000/api/veriler');
+    final url = Uri.parse('http:// 127.0.0.1:3000/api/veriler');
     try {
       final response = await http.get(url);
 
@@ -73,7 +78,8 @@ class _EmployeesPageState extends State<EmployeesPage> {
         List<dynamic> data;
         if (decoded is List) {
           data = decoded;
-        } else if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+        } else if (decoded is Map<String, dynamic> &&
+            decoded.containsKey('data')) {
           data = decoded['data'];
         } else {
           throw Exception('Beklenmeyen veri formatı');
@@ -93,12 +99,13 @@ class _EmployeesPageState extends State<EmployeesPage> {
   }
 
   Future<void> markAsCompleted(int id) async {
-    final url = Uri.parse('http://10.0.2.2:3000/api/veriler/$id');
+    final url = Uri.parse('http://127.0.0.1:3000/api/veriler/$id');
     try {
-      final response = await http.put(url,
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode({"basvuru_durumu": "tamamlandi"}),
-);
+      final response = await http.put(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"basvuru_durumu": "tamamlandi"}),
+      );
 
       if (response.statusCode == 200) {
         setState(() {
@@ -116,7 +123,9 @@ class _EmployeesPageState extends State<EmployeesPage> {
     List<Complaint> filtered = complaints;
 
     if (selectedDepartment != 'Departman Seç') {
-      filtered = filtered.where((c) => c.departman == selectedDepartment).toList();
+      filtered = filtered
+          .where((c) => c.departman == selectedDepartment)
+          .toList();
     }
     if (filter == 'Tamamlanan') {
       filtered = filtered.where((c) => c.tamamlandi).toList();
@@ -124,10 +133,13 @@ class _EmployeesPageState extends State<EmployeesPage> {
       filtered = filtered.where((c) => !c.tamamlandi).toList();
     }
     if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((c) =>
-        c.baslik.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        c.aciklama.toLowerCase().contains(_searchQuery.toLowerCase())
-      ).toList();
+      filtered = filtered
+          .where(
+            (c) =>
+                c.baslik.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                c.aciklama.toLowerCase().contains(_searchQuery.toLowerCase()),
+          )
+          .toList();
     }
 
     print('Filtrelenen Şikayet Sayısı: ${filtered.length}');
@@ -176,10 +188,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
           value: selectedDepartment,
           isExpanded: true,
           items: ['Departman Seç', ...departments].map((dep) {
-            return DropdownMenuItem(
-              value: dep,
-              child: Text(dep),
-            );
+            return DropdownMenuItem(value: dep, child: Text(dep));
           }).toList(),
           onChanged: (value) {
             if (value != null) {
@@ -242,10 +251,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
         ),
         title: Row(
           children: [
-            Image.asset(
-              'assets/mezitbellogo.png',
-              height: 60,
-            ),
+            Image.asset('assets/mezitbellogo.png', height: 60),
             const SizedBox(width: 10),
             Expanded(child: Container()),
           ],
@@ -258,10 +264,7 @@ class _EmployeesPageState extends State<EmployeesPage> {
           children: [
             const Text(
               'TALEP / ŞİKAYETLER',
-              style: TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
             ),
             Row(
               children: [
@@ -281,29 +284,33 @@ class _EmployeesPageState extends State<EmployeesPage> {
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : filteredComplaints.isEmpty
-                      ? const Center(child: Text("Görüntülenecek talep yok"))
-                      : ListView.builder(
-                          itemCount: filteredComplaints.length,
-                          itemBuilder: (context, index) {
-                            final complaint = filteredComplaints[index];
-                            return Card(
-                              color: Colors.white,
-                              child: ListTile(
-                                title: Text(complaint.baslik),
-                                subtitle: Text(complaint.aciklama),
-                                trailing: complaint.tamamlandi
-                                    ? const Icon(Icons.check_circle, color: Colors.green)
-                                    : ElevatedButton(
-                                        child: const Text("Tamamlandı"),
-                                        onPressed: () => markAsCompleted(complaint.id),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.grey[700],
-                                        ),
-                                      ),
-                              ),
-                            );
-                          },
-                        ),
+                  ? const Center(child: Text("Görüntülenecek talep yok"))
+                  : ListView.builder(
+                      itemCount: filteredComplaints.length,
+                      itemBuilder: (context, index) {
+                        final complaint = filteredComplaints[index];
+                        return Card(
+                          color: Colors.white,
+                          child: ListTile(
+                            title: Text(complaint.baslik),
+                            subtitle: Text(complaint.aciklama),
+                            trailing: complaint.tamamlandi
+                                ? const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                  )
+                                : ElevatedButton(
+                                    child: const Text("Tamamlandı"),
+                                    onPressed: () =>
+                                        markAsCompleted(complaint.id),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.grey[700],
+                                    ),
+                                  ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),

@@ -93,17 +93,47 @@ router.get('/kullanici', (req, res) => {
   });
 });
 
-// Veri ekle (dosya yükleme dahil)
-
 router.post('/veri-ekle', authenticateToken, upload.single('dosya'), (req, res) => {
   console.log('BODY:', req.body);
   console.log('FILE:', req.file);
 
-  const {  basvuru_tipi, icerik, kullanici_id ,konu } = req.body;
- //const isim=
-  if ( !basvuru_tipi || !icerik || !konu) {
+  const { basvuru_tipi, icerik, kullanici_id, konu, mahalle, sokak } = req.body;
+
+  // Template literal düzeltildi
+  const adres = `${mahalle}, ${sokak}`;
+  const dosya_yolu = req.file ? `http://localhost:3000/uploads/${req.file.filename}` : null;
+
+  console.log({ basvuru_tipi, icerik, kullanici_id, konu, adres, dosya_yolu });
+
+  // Tüm alanlar kontrol ediliyor
+  if (!kullanici_id || !basvuru_tipi || !icerik || !konu || !mahalle || !sokak) {
     return res.status(400).json({ status: "error", message: "Lütfen tüm alanları doldurun." });
   }
+
+  const ekleQuery = `
+    INSERT INTO veriler 
+    (basvuru_tipi, icerik, kullanici_id, konu, adres, dosya_yolu)
+    VALUES (?, ?, ?, ?, ?, ?)`;
+
+  pool.query(
+    ekleQuery,
+    [basvuru_tipi, icerik, kullanici_id, konu, adres, dosya_yolu],
+    (err, result) => {
+      if (err) {
+        console.error('INSERT HATASI:', err);
+        return res.status(500).json({ status: "error", message: "Veri eklenemedi." });
+      }
+
+      return res.json({
+        status: "success",
+        message: "Başvuru başarıyla kaydedildi.",
+        id: result.insertId,
+        dosya_yolu
+      });
+    }
+  );
+});
+
 
   const dosya_yolu = req.file ? `http://localhost:3000/uploads/${req.file.filename}` : null;
 
@@ -114,7 +144,7 @@ router.post('/veri-ekle', authenticateToken, upload.single('dosya'), (req, res) 
 
   pool.query(
   ekleQuery,
-  [ basvuru_tipi, icerik, kullanici_id, konu, 'adres', dosya_yolu],
+  [ basvuru_tipi, icerik, kullanici_id, konu, adres, dosya_yolu],
   (err, result) => {
     if (err) {
       console.error('INSERT HATASI:', err);
@@ -130,13 +160,12 @@ router.post('/veri-ekle', authenticateToken, upload.single('dosya'), (req, res) 
       });
     }
   );
-});
-
 
 
 // Tüm verileri listele
 router.get('/veriler', (req, res) => {
-  pool.query('SELECT * FROM veriler', (err, results) => {
+  pool.query('SELECT * FROM veriler WHERE kullanici_id=?', [kullanici_id],
+     (err, results) => {
     if (err) return res.status(500).json({ status: "error", message: "Veri çekilemedi" });
     res.json(results);
   });
@@ -144,16 +173,32 @@ router.get('/veriler', (req, res) => {
 
 // Başvuru durumu güncelle
 // Flutter'dan gelen "tamamlandı" güncelleme isteği için
+// Başvuru detaylarını güncelle (açıklama düzenleme için)
 router.put('/veriler/:ID', (req, res) => {
-  const id = req.params.id;
-  const { basvuru_durumu } = req.body;  // ya da tamamlandi ise, onu burada yakala
+  const ID = req.params.ID;
+  const { basvuru_tipi, icerik, konu, adres, basvuru_durumu} = req.body;
+
+  if (!icerik || !konu) {
+    return res.status(400).json({ status: "error", message: "icerik ve konu zorunlu." });
+  }
 
   if (typeof basvuru_durumu === 'undefined') {
     return res.status(400).json({ status: "error", message: "basvuru_durumu alanı eksik" });
   }
 
-  const query = 'UPDATE veriler SET basvuru_durumu = ? WHERE ID = ?';
-  pool.query(query, [basvuru_durumu, id], (err, result) => {
+
+  let query;
+  let params;
+
+
+  if (basvuru_durumu === 'tamamlandi') {
+    query = 'UPDATE veriler SET basvuru_durumu = ?, finished_time = NOW() WHERE ID = ?';
+    params = [basvuru_durumu, ID];
+  } else {
+    query = 'UPDATE veriler SET basvuru_durumu = ?, finished_time = NULL WHERE ID = ?';
+    params = [basvuru_durumu, ID];
+  }
+  pool.query(query, [basvuru_tipi, icerik, konu, adres, id], (err, result) => {
     if (err) {
       console.error('Güncelleme hatası:', err);
       return res.status(500).json({ status: "error", message: "Güncelleme hatası" });

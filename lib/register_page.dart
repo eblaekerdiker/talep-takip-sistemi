@@ -18,7 +18,7 @@ class _RegisterPageState extends State<RegisterPage> {
   String password = '';
 
   Future<void> register() async {
-    final url = Uri.parse("http://10.0.2.2:3000/api/register");
+    final url = Uri.parse("http://127.0.0.1:3000/api/register");
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -34,16 +34,17 @@ class _RegisterPageState extends State<RegisterPage> {
     final res = json.decode(response.body);
     if (res["status"] == "success") {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Kayıt başarılı")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Kayıt başarılı")));
       Navigator.pop(context);
     } else {
-      final errorMessage = res["message"] ?? "Sunucudan bir hata yanıtı alınamadı.";
+      final errorMessage =
+          res["message"] ?? "Sunucudan bir hata yanıtı alınamadı.";
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Hata: $errorMessage")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Hata: $errorMessage")));
     }
   }
 
@@ -51,11 +52,11 @@ class _RegisterPageState extends State<RegisterPage> {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey), // normal etiket rengi
-      floatingLabelStyle: TextStyle(color: Colors.grey), // focus olunca da aynı renk
-      border: OutlineInputBorder(
-      borderSide: BorderSide(color: Colors.black),
-      ),
-      
+      floatingLabelStyle: TextStyle(
+        color: Colors.grey,
+      ), // focus olunca da aynı renk
+      border: OutlineInputBorder(borderSide: BorderSide(color: Colors.black)),
+
       enabledBorder: OutlineInputBorder(
         borderSide: BorderSide(color: Colors.black),
       ),
@@ -73,12 +74,7 @@ class _RegisterPageState extends State<RegisterPage> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         title: Row(
-          children: [
-            Image.asset(
-              'assets/mezitbellogo.png',
-              height: 57,
-            ),
-          ],
+          children: [Image.asset('assets/mezitbellogo.png', height: 57)],
         ),
       ),
       body: SingleChildScrollView(
