@@ -15,6 +15,7 @@ const hataYaniti = (res, mesaj = "Sunucu hatası") => res.status(500).json({ sta
 
 // Kayıt olma endpointi
 router.post('/register', (req, res) => {
+  console.log("Register isteği body:", req.body);
   const { kullanici_adi, sifre, eposta, tam_adi, telefon } = req.body;
 
   if (!kullanici_adi || !sifre || !eposta || !tam_adi) {
@@ -23,7 +24,7 @@ router.post('/register', (req, res) => {
   if (!validator.isEmail(eposta)) {
     return res.status(400).json({ status: "error", message: "Geçerli bir e-posta girin." });
   }
-  const sifreRegex = /^(?=.[a-z])(?=.[A-Z])(?=.*\d)[^\s]{8,}$/;
+  const sifreRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^\s]{8,}$/;
   if (!sifreRegex.test(sifre)) {
     return res.status(400).json({ status: "error", message: "Şifre en az 8 karakter, 1 büyük harf, 1 küçük harf ve 1 sayı içermeli. Boşluk içeremez." });
   }

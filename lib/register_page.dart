@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../utils/otp_verification_page.dart';
+import '../utils/email_verification_page.dart'; // EmailVerificationPage buradan import ediliyor
 import '../complaint_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -21,17 +21,23 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> register() async {
     final url = Uri.parse("http://10.0.2.2:3000/api/register");
+
+    final requestBody = json.encode({
+      "tam_adi": name,
+      "eposta": email,
+      "kullanici_adi": username,
+      "telefon": phone,
+      "sifre": password,
+    });
+    print('Gönderilen JSON: $requestBody');
+
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
-      body: json.encode({
-        "tam_adi": name,
-        "eposta": email,
-        "kullanici_adi": username,
-        "telefon": phone,
-        "sifre": password,
-      }),
+      body: requestBody,
     );
+
+    print('Sunucudan gelen cevap: ${response.body}');
 
     final res = json.decode(response.body);
 
@@ -46,8 +52,8 @@ class _RegisterPageState extends State<RegisterPage> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => OtpVerificationPage(
-            phoneNumber: phone,
+          builder: (_) => EmailVerificationPage(
+            email: email, // Burayı düzelttik, artık email gönderiliyor
             onCodeSubmitted: (code) {
               Navigator.pushReplacement(
                 context,
@@ -152,7 +158,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 validator: (value) =>
                     value!.isEmpty ? 'Bu alan boş bırakılamaz' : null,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

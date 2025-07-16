@@ -65,7 +65,7 @@ console.log(kullanici_adi,yeni_sifre)
     return res.status(400).json({ mesaj: 'Kullanıcı adı ve yeni şifre gerekli.' });
   }
 
-  const sifreRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^\s]{6,}$/;
+ const sifreRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^\s]{8,}$/;
   if (!sifreRegex.test(yeni_sifre)) {
     return res.status(400).json({ mesaj: 'Şifre güçlü değil. Büyük harf, küçük harf ve sayı içermeli.' });
   }
