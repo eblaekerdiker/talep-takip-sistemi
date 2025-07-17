@@ -1,44 +1,39 @@
-global.latestUploadedFilePath = null;
-
-
+require('dotenv').config(); // EN BAŞTA
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const apiRoutes = require('./routes/API');
 const morgan = require('morgan');
-const pool = require('./config/db');  
-require('dotenv').config();
-
-
-
-const swaggerJsdoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express')
-
-const sifreRoutes = require('./routes/passwordReset');
-const uploadRoutes = require('./routes/upload');  
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 
+// Routes
+const apiRoutes = require('./routes/API');
+const sifreRoutes = require('./routes/passwordReset');
+const uploadRoutes = require('./routes/upload');
+const emailVerification = require('./routes/emailVerification');
 
 // Middleware
-app.use(morgan('dev'));
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Statik dosyalar
 app.use(express.static(path.join(__dirname, 'proje')));
 app.use(express.static(path.join(__dirname, 'form')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-
-// Route Kayıtları
+// Route kullanımları
 app.use('/api', sifreRoutes);
 app.use('/api', apiRoutes);
 app.use('/api', uploadRoutes);
-app.use('/api/email-verification', require('./routes/emailVerification'));
+app.use('/api/email-verification', emailVerification.router);
 
-// Swagger ayarları
+// Swagger
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
@@ -49,18 +44,16 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: `http://10.0.2.2:3000${port}`,
+        url: `http://10.0.2.2:${port}`,
       },
     ],
   },
   apis: [path.join(__dirname, 'routes/*.js')],
 };
-
-console.log(' DEBUG Swagger apis path:', path.join(__dirname, 'routes/*.js'));
-
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// Basit test
 app.get('/', (req, res) => {
   res.status(200).send({ message: 'Merhaba, bu bir Node.js uygulamasıdır!' });
 });
@@ -69,25 +62,17 @@ app.get('/', (req, res) => {
 app.use((err, req, res, next) => {
   console.error("HATA:", err.stack);
   res.status(500).json({ status: 'error', message: 'Sunucu hatası!' });
-   console.log(`${req.method} ${req.path} - Body:`, req.body);
-  next();
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
 });
 
 // Sunucuyu başlat
 app.listen(port, () => {
-  console.log(`Sunucu http://localhost:${port} üzerinde çalışıyor`);
+  console.log(`🚀 Sunucu http://localhost:${port} üzerinde çalışıyor`);
 });
-
-
-
-//Bu dosya Node.js uygulamasının giriş noktasıdır.
-
-//Temel middleware’ler kurulmuş, statik dosyalar servis ediliyor.
-
-//Swagger ile otomatik API dökümantasyonu hazırlanmış.
-
-//API rotaları /api altında kullanıma açılmış.
-
-//Hatalar merkezi bir yerde yakalanıp yönetiliyor.
-
-//Sunucu 3000 portunda başlatılıyor.

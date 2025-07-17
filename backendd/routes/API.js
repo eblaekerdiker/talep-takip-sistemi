@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const authenticateToken = require('../middleware/auth');
 const upload = require('../middleware/multerConfig');
+const verificationCodes = require('./emailVerification');
 const pool = require('../config/db');
 require('dotenv').config();
 
@@ -41,18 +42,47 @@ router.post('/register', (req, res) => {
       return res.status(409).json({ status: "error", message: "Bu kullanıcı adı veya e-posta zaten kayıtlı." });
     }
 
-    bcrypt.hash(sifre, 10, (err, hash) => {
-      if (err) return hataYaniti(res, "Şifre işlenemedi.");
+    // ✅ Mail gönderimi için kod burada üretilecek
+    const verificationCode = Math.floor(100000 + Math.random() * 900000);
 
-      const kayitQuery = 'INSERT INTO kullanici (kullanici_adi, sifre_hash, eposta, tam_adi, telefon) VALUES (?, ?, ?, ?, ?)';
-      pool.query(kayitQuery, [kullanici_adi, hash, eposta, tam_adi, telefon || null], (err) => {
-        if (err) return hataYaniti(res, "Kayıt sırasında hata oluştu.");
+    const transporter = require('nodemailer').createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
 
-        return res.json({ status: "success", message: "Kayıt başarılı!" });
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: eposta,
+      subject: 'MuZyu Doğrulama Kodu',
+      text: `Merhaba ${tam_adi},\n\nDoğrulama kodunuz: ${verificationCode}\n\nMuZyu'yu kullandığınız için teşekkürler.`
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('Mail gönderme hatası:', error);
+        return res.status(500).json({ status: "error", message: "Mail gönderilemedi. Kayıt yapılmadı." });
+      }
+
+      console.log('Mail gönderildi:', info.response);
+
+      // ✅ Mail başarıyla gönderildiyse şifreyi hashle ve veritabanına kaydet
+      bcrypt.hash(sifre, 10, (err, hash) => {
+        if (err) return hataYaniti(res, "Şifre işlenemedi.");
+
+        const kayitQuery = 'INSERT INTO kullanici (kullanici_adi, sifre_hash, eposta, tam_adi, telefon) VALUES (?, ?, ?, ?, ?)';
+        pool.query(kayitQuery, [kullanici_adi, hash, eposta, tam_adi, telefon || null], (err) => {
+          if (err) return hataYaniti(res, "Kayıt sırasında hata oluştu.");
+
+          return res.json({ status: "success", message: "Kayıt başarılı! Doğrulama kodu gönderildi.", code: verificationCode });
+        });
       });
     });
   });
 });
+
 
 // Giriş endpointi
 router.post('/login', (req, res) => {
