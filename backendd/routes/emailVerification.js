@@ -9,6 +9,7 @@ const verificationCodes = {}; // { email: code }
 // Kod gönderme endpoint'i
 router.post('/send-code', async (req, res) => {
   const { email } = req.body;
+  console.log("İstek geldi:", req.body);
 
   if (!email) {
     return res.status(400).json({ status: 'error', message: 'E-posta gerekli.' });
@@ -18,9 +19,6 @@ router.post('/send-code', async (req, res) => {
   verificationCodes[email] = code;
   console.log(`Kod ${email} için üretildi: ${code}`);
 
-
-  console.log("MAIL_USER:", process.env.MAIL_USER);
-console.log("MAIL_PASS:", process.env.MAIL_PASS ? "✅ dolu" : "❌ boş");
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',

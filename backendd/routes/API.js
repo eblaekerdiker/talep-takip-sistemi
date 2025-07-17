@@ -5,9 +5,7 @@ const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const authenticateToken = require('../middleware/auth');
 const upload = require('../middleware/multerConfig');
-const verificationCodes = require('./emailVerification');
 const pool = require('../config/db');
-require('dotenv').config();
 
 const SECRET_KEY = process.env.JWT_SECRET;
 
@@ -16,7 +14,6 @@ const hataYaniti = (res, mesaj = "Sunucu hatası") => res.status(500).json({ sta
 
 // Kayıt olma endpointi
 router.post('/register', (req, res) => {
-  console.log("Register isteği body:", req.body);
   const { kullanici_adi, sifre, eposta, tam_adi, telefon } = req.body;
 
   if (!kullanici_adi || !sifre || !eposta || !tam_adi) {
@@ -42,7 +39,6 @@ router.post('/register', (req, res) => {
       return res.status(409).json({ status: "error", message: "Bu kullanıcı adı veya e-posta zaten kayıtlı." });
     }
 
-    // ✅ Mail gönderimi için kod burada üretilecek
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
 
     const transporter = require('nodemailer').createTransport({
@@ -66,9 +62,6 @@ router.post('/register', (req, res) => {
         return res.status(500).json({ status: "error", message: "Mail gönderilemedi. Kayıt yapılmadı." });
       }
 
-      console.log('Mail gönderildi:', info.response);
-
-      // ✅ Mail başarıyla gönderildiyse şifreyi hashle ve veritabanına kaydet
       bcrypt.hash(sifre, 10, (err, hash) => {
         if (err) return hataYaniti(res, "Şifre işlenemedi.");
 
@@ -82,7 +75,6 @@ router.post('/register', (req, res) => {
     });
   });
 });
-
 
 // Giriş endpointi
 router.post('/login', (req, res) => {
@@ -114,28 +106,11 @@ router.post('/login', (req, res) => {
   });
 });
 
-// Kullanıcıları listele
-router.get('/kullanici', (req, res) => {
-  pool.query('SELECT * FROM kullanici', (err, results) => {
-    if (err) return res.status(500).send(err);
-    res.json(results);
-  });
-});
-
 // Veri ekle
 router.post('/veri-ekle', authenticateToken, upload.single('dosya'), (req, res) => {
-  console.log('BODY:', req.body);
-  console.log('FILE:', req.file);
-
   const { basvuru_tipi, icerik, kullanici_id, konu, mahalle, sokak } = req.body;
-
   const adres = `${mahalle}, ${sokak}`;
-
-
-  const dosya_yolu = req.file
-  ? `http://localhost:3000/uploads/${req.file.filename}`
-  : null;
-
+  const dosya_yolu = req.file ? `http://localhost:3000/uploads/${req.file.filename}` : null;
 
   if (!kullanici_id || !basvuru_tipi || !icerik || !konu || !mahalle || !sokak) {
     return res.status(400).json({ status: "error", message: "Lütfen tüm alanları doldurun." });
@@ -146,29 +121,23 @@ router.post('/veri-ekle', authenticateToken, upload.single('dosya'), (req, res) 
     (basvuru_tipi, icerik, kullanici_id, konu, adres, dosya_yolu)
     VALUES (?, ?, ?, ?, ?, ?)`;
 
-  pool.query(
-    ekleQuery,
-    [basvuru_tipi, icerik, kullanici_id, konu, adres, dosya_yolu],
-    (err, result) => {
-      if (err) {
-        console.error('INSERT HATASI:', err);
-        return res.status(500).json({ status: "error", message: "Veri eklenemedi." });
-      }
-
-      return res.json({
-        status: "success",
-        message: "Başvuru başarıyla kaydedildi.",
-        id: result.insertId,
-        dosya_yolu
-      });
+  pool.query(ekleQuery, [basvuru_tipi, icerik, kullanici_id, konu, adres, dosya_yolu], (err, result) => {
+    if (err) {
+      console.error('INSERT HATASI:', err);
+      return res.status(500).json({ status: "error", message: "Veri eklenemedi." });
     }
-  );
+
+    return res.json({
+      status: "success",
+      message: "Başvuru başarıyla kaydedildi.",
+      id: result.insertId,
+      dosya_yolu
+    });
+  });
 });
 
-// Tüm verileri listele
+// Verileri listele
 router.get('/veriler', (req, res) => {
-
-  console.log("Gelen query:", req.query);
   const { kullanici_id } = req.query;
   if (!kullanici_id) {
     return res.status(400).json({ status: "error", message: "kullanici_id gerekli." });
@@ -180,14 +149,10 @@ router.get('/veriler', (req, res) => {
   });
 });
 
-// Başvuru güncelle
+// **Burada sadece basvuru_durumu ve finished_time güncelleniyor**
 router.put('/veriler/:ID', (req, res) => {
   const ID = req.params.ID;
-  const { basvuru_tipi, icerik, konu, adres, basvuru_durumu } = req.body;
-
-  if (!icerik || !konu) {
-    return res.status(400).json({ status: "error", message: "icerik ve konu zorunlu." });
-  }
+  const { basvuru_durumu } = req.body;
 
   if (typeof basvuru_durumu === 'undefined') {
     return res.status(400).json({ status: "error", message: "basvuru_durumu alanı eksik" });
@@ -195,11 +160,11 @@ router.put('/veriler/:ID', (req, res) => {
 
   const query = `
     UPDATE veriler
-    SET basvuru_tipi = ?, icerik = ?, konu = ?, adres = ?, basvuru_durumu = ?, 
+    SET basvuru_durumu = ?, 
         finished_time = ${basvuru_durumu === 'tamamlandi' ? 'NOW()' : 'NULL'}
     WHERE ID = ?`;
 
-  const params = [basvuru_tipi, icerik, konu, adres, basvuru_durumu, ID];
+  const params = [basvuru_durumu, ID];
 
   pool.query(query, params, (err, result) => {
     if (err) {
