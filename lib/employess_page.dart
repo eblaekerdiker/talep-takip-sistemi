@@ -158,15 +158,20 @@ class _EmployeesPageState extends State<EmployeesPage> {
             });
           },
           style: OutlinedButton.styleFrom(
+            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
             backgroundColor: Colors.white,
             side: const BorderSide(color: Colors.black, width: 1),
             foregroundColor: Colors.black,
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
             ),
           ),
         ),
@@ -264,12 +269,12 @@ class _EmployeesPageState extends State<EmployeesPage> {
           children: [
             const Text(
               'TALEP / ŞİKAYETLER',
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold),
             ),
             Row(
               children: [
                 Expanded(child: buildDepartmentDropdown()),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Expanded(child: buildSearchField()),
               ],
             ),

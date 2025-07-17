@@ -24,11 +24,13 @@ class _ComplaintPageState extends State<ComplaintPage> {
   final _subjectController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _selectedType = 'Talep';
-  File? _selectedImage;
-  Uint8List? _webImage;
+
+  // Yeni çoklu resim listeleri
+  final ImagePicker _picker = ImagePicker();
+  List<XFile> _selectedImages = [];
+  List<Uint8List> _webImages = [];
 
   final List<String> _types = ['Talep', 'Şikayet'];
-
   Mahalle? _selectedMahalle;
   Yol? _selectedYol;
 
@@ -52,23 +54,29 @@ class _ComplaintPageState extends State<ComplaintPage> {
   OutlineInputBorder get _blackBorder =>
       const OutlineInputBorder(borderSide: BorderSide(color: Colors.black));
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
+  Future<void> _pickImages() async {
+    final List<XFile>? pickedFiles = await _picker.pickMultiImage();
+    if (pickedFiles != null && pickedFiles.isNotEmpty) {
       if (kIsWeb) {
-        final bytes = await pickedFile.readAsBytes();
-        setState(() {
-          _webImage = bytes;
-          _selectedImage = null;
-        });
+        for (var file in pickedFiles) {
+          final bytes = await file.readAsBytes();
+          _webImages.add(bytes);
+        }
       } else {
-        setState(() {
-          _selectedImage = File(pickedFile.path);
-          _webImage = null;
-        });
+        _selectedImages.addAll(pickedFiles);
       }
+      setState(() {});
     }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      if (kIsWeb) {
+        _webImages.removeAt(index);
+      } else {
+        _selectedImages.removeAt(index);
+      }
+    });
   }
 
   Future<void> _submitForm() async {
@@ -116,16 +124,30 @@ class _ComplaintPageState extends State<ComplaintPage> {
       ..fields['sokak'] = _selectedYol!.name
       ..fields['sokak_tipi'] = _selectedYol!.type;
 
-    if (!kIsWeb && _selectedImage != null) {
-      final imageStream = http.ByteStream(_selectedImage!.openRead());
-      final imageLength = await _selectedImage!.length();
-      final multipartFile = http.MultipartFile(
-        'dosya',
-        imageStream,
-        imageLength,
-        filename: _selectedImage!.path.split('/').last,
-      );
-      request.files.add(multipartFile);
+    // Çoklu resimleri ekle
+    if (kIsWeb) {
+      for (int i = 0; i < _webImages.length; i++) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'dosyalar',
+            _webImages[i],
+            filename: 'web_image_$i.jpg',
+          ),
+        );
+      }
+    } else {
+      for (var image in _selectedImages) {
+        final file = File(image.path);
+        final imageStream = http.ByteStream(file.openRead());
+        final imageLength = await file.length();
+        final multipartFile = http.MultipartFile(
+          'dosyalar',
+          imageStream,
+          imageLength,
+          filename: image.path.split('/').last,
+        );
+        request.files.add(multipartFile);
+      }
     }
 
     try {
@@ -176,9 +198,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
             children: [
               Center(
                 child: Text(
-                  widget.existingComplaint != null
-                      ? 'TALEP / ŞİKAYET GÖNDER'
-                      : 'TALEP / ŞİKAYET GÖNDER',
+                  'TALEP / ŞİKAYET GÖNDER',
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -206,7 +226,6 @@ class _ComplaintPageState extends State<ComplaintPage> {
 
               const SizedBox(height: 15),
 
-              // İşte mahalle+sokak dropdown buraya geldi
               MahalleDropdown(
                 onSelectionChanged: (mahalle, yol) {
                   setState(() {
@@ -248,13 +267,99 @@ class _ComplaintPageState extends State<ComplaintPage> {
 
               const SizedBox(height: 15),
 
+              // Resim grid önizleme
+              if (kIsWeb && _webImages.isNotEmpty)
+                SizedBox(
+                  height: 150,
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _webImages.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
+                    itemBuilder: (context, index) => Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Image.memory(
+                            _webImages[index],
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => _removeImage(index),
+                            child: CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.black54,
+                              child: const Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else if (!kIsWeb && _selectedImages.isNotEmpty)
+                SizedBox(
+                  height: 150,
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _selectedImages.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                        ),
+                    itemBuilder: (context, index) => Stack(
+                      children: [
+                        Positioned.fill(
+                          child: Image.file(
+                            File(_selectedImages[index].path),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => _removeImage(index),
+                            child: CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.black54,
+                              child: const Icon(
+                                Icons.close,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 20),
+
               Row(
                 children: [
                   Expanded(
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: ElevatedButton.icon(
-                        onPressed: _pickImage,
+                        onPressed: _pickImages,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: Colors.black,
@@ -264,36 +369,15 @@ class _ComplaintPageState extends State<ComplaintPage> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: ElevatedButton(
                         onPressed: _submitForm,
-                        style: ButtonStyle(
-                          backgroundColor: MaterialStateProperty.all(
-                            Colors.white,
-                          ),
-                          foregroundColor: MaterialStateProperty.all(
-                            Colors.black,
-                          ),
-                          overlayColor:
-                              MaterialStateProperty.resolveWith<Color?>((
-                                states,
-                              ) {
-                                if (states.contains(MaterialState.hovered)) {
-                                  return Colors.red.withOpacity(0.4);
-                                }
-                                if (states.contains(MaterialState.pressed)) {
-                                  return Colors.red.withOpacity(0.6);
-                                }
-                                return null;
-                              }),
-                          padding: MaterialStateProperty.all(
-                            const EdgeInsets.symmetric(
-                              horizontal: 30,
-                              vertical: 15,
-                            ),
-                          ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
                         ),
                         child: const Text('Gönder'),
                       ),
@@ -301,13 +385,6 @@ class _ComplaintPageState extends State<ComplaintPage> {
                   ),
                 ],
               ),
-
-              const SizedBox(height: 20),
-
-              if (kIsWeb && _webImage != null)
-                SizedBox(height: 150, child: Image.memory(_webImage!))
-              else if (!kIsWeb && _selectedImage != null)
-                SizedBox(height: 150, child: Image.file(_selectedImage!)),
 
               const SizedBox(height: 10),
             ],

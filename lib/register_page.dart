@@ -42,29 +42,38 @@ class _RegisterPageState extends State<RegisterPage> {
     final res = json.decode(response.body);
 
     if (res["status"] == "success") {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Kayıt başarılı. Doğrulama kodu gönderildi."),
-        ),
+      // Kayıt başarılı ise mail gönderme isteği yap
+      final mailResponse = await http.post(
+        Uri.parse('http://10.0.2.2:3000/api/send-code'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
       );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => EmailVerificationPage(
-            email: email, // Burayı düzelttik, artık email gönderiliyor
-            onCodeSubmitted: (code) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ComplaintPage(token: 'KULLANICI_TOKENINIZ'),
-                ),
-              );
-            },
+      if (mailResponse.statusCode == 200) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Kayıt başarılı. Doğrulama kodu gönderildi."),
           ),
-        ),
-      );
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EmailVerificationPage(
+              email: email,
+              onCodeSubmitted: (code) {
+                Navigator.pushReplacementNamed(context, '/anasayfa');
+              },
+            ),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Doğrulama kodu gönderilemedi.")),
+        );
+      }
     } else {
       final errorMessage =
           res["message"] ?? "Sunucudan bir hata yanıtı alınamadı.";

@@ -5,7 +5,6 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
 
 import 'package:talepsikayet/utils/shared.dart';
-import 'utils/mahalle_model.dart';
 import 'complaint_page.dart';
 import 'login_page.dart';
 
@@ -22,9 +21,6 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
   List<Map<String, dynamic>> complaints = [];
   bool isLoading = true;
 
-  List<Mahalle> mahalleler = [];
-  Mahalle? secilenMahalle;
-
   @override
   void initState() {
     super.initState();
@@ -35,9 +31,6 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
   Future<void> _veriyiYukle() async {
     final jsonStr = await rootBundle.loadString('assets/csbm.json');
     final jsonList = json.decode(jsonStr) as List;
-    setState(() {
-      mahalleler = jsonList.map((e) => Mahalle.fromJson(e)).toList();
-    });
   }
 
   Future<void> fetchComplaints() async {
@@ -166,37 +159,6 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
       ),
       body: Column(
         children: [
-          if (mahalleler.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: DropdownButton<Mahalle>(
-                isExpanded: true,
-                hint: const Text("Mahalle Seçin"),
-                value: secilenMahalle,
-                items: mahalleler.map((m) {
-                  return DropdownMenuItem(value: m, child: Text(m.r));
-                }).toList(),
-                onChanged: (m) {
-                  setState(() => secilenMahalle = m);
-                },
-              ),
-            ),
-          if (secilenMahalle != null)
-            Expanded(
-              flex: 0,
-              child: SizedBox(
-                height: 150,
-                child: ListView(
-                  children: secilenMahalle!.m.map((yol) {
-                    return ListTile(
-                      dense: true,
-                      visualDensity: VisualDensity.compact,
-                      title: Text("${yol.name} (${yol.type})"),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -277,6 +239,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
           ),
         ],
       ),
+
       floatingActionButton: Align(
         alignment: Alignment.bottomRight,
         child: Padding(

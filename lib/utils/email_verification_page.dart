@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class EmailVerificationPage extends StatefulWidget {
-  final String email;
   final void Function(String code) onCodeSubmitted;
+  final String email;
 
   const EmailVerificationPage({
     Key? key,
@@ -16,23 +18,51 @@ class EmailVerificationPage extends StatefulWidget {
 
 class _EmailVerificationPageState extends State<EmailVerificationPage> {
   final _formKey = GlobalKey<FormState>();
-  final _codeController = TextEditingController();
+  final TextEditingController _codeController = TextEditingController();
   bool _isSubmitting = false;
-
-  void _submitCode() {
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() => _isSubmitting = true);
-      Future.delayed(const Duration(seconds: 1), () {
-        setState(() => _isSubmitting = false);
-        widget.onCodeSubmitted(_codeController.text);
-      });
-    }
-  }
 
   @override
   void dispose() {
     _codeController.dispose();
     super.dispose();
+  }
+
+  Future<void> verifyCode() async {
+    final code = _codeController.text.trim();
+
+    if (code.isEmpty || code.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen geçerli bir kod girin')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final response = await http.post(
+      Uri.parse('http://10.0.2.2:3000/api/verify-code'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': widget.email, 'code': code}),
+    );
+    setState(() => _isSubmitting = false);
+
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Doğrulama başarılı!')));
+      widget.onCodeSubmitted(code);
+      Navigator.pushReplacementNamed(context, '/anasayfa');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kod yanlış veya süresi dolmuş')),
+      );
+    }
+  }
+
+  void _submitCode() {
+    if (_formKey.currentState?.validate() ?? false) {
+      verifyCode();
+    }
   }
 
   @override
