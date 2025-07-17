@@ -119,6 +119,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
       ..fields['icerik'] = _descriptionController.text
       ..fields['isim'] = userMap?['isim'] ?? 'Test'
       ..fields['soyisim'] = userMap?['soyisim'] ?? 'Kullanici'
+      ..fields['kullanici_id'] = (userMap?['kullanici_id'] ?? 1).toString()
       ..fields['konu'] = _subjectController.text
       ..fields['mahalle'] = _selectedMahalle!.r
       ..fields['sokak'] = _selectedYol!.name
