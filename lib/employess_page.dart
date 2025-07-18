@@ -7,6 +7,7 @@ import 'login_page.dart';
 class Complaint {
   final int id;
   final String baslik;
+  final String konu;
   final String aciklama;
   bool tamamlandi;
   final String departman;
@@ -14,6 +15,7 @@ class Complaint {
   Complaint({
     required this.id,
     required this.baslik,
+    required this.konu,
     required this.aciklama,
     required this.tamamlandi,
     required this.departman,
@@ -22,12 +24,14 @@ class Complaint {
   factory Complaint.fromJson(Map<String, dynamic> json) {
     return Complaint(
       id: json['ID'] ?? 0,
-      baslik: json['basvuru_tipi'] ?? '', // doğru alan
-      aciklama: json['icerik'] ?? '', // doğru alan
-      tamamlandi: json['tamamlandi'] == 1,
-      departman: json['departman'] ?? '', // doğru alan
+      baslik: json['basvuru_tipi'] ?? '', 
+      aciklama: json['icerik'] ?? '',
+      konu: (json['konu'] ?? '').toString(),
+      tamamlandi: json['basvuru_durumu'] == 'tamamlandi', // <-- burası
+      departman: json['departman'] ?? '',
     );
   }
+
 }
 
 void main() {
@@ -150,6 +154,31 @@ Future<void> _loadUserAndFetch() async {
     return filtered;
   }
 
+void _showComplaintDetails(Complaint complaint) { //yenı ekledım
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("${complaint.konu}"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+            
+              Text("Açıklama: ${complaint.aciklama}"),
+              const SizedBox(height: 10),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Kapat'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  } // yenı ekledım
   Widget buildFilterButton(String label) {
     bool isSelected = filter == label;
     return Expanded(
@@ -183,33 +212,6 @@ Future<void> _loadUserAndFetch() async {
     );
   }
 
-  Widget buildDepartmentDropdown() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.black, width: 1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: selectedDepartment,
-          isExpanded: true,
-          items: ['Departman Seç', ...departments].map((dep) {
-            return DropdownMenuItem(value: dep, child: Text(dep));
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                selectedDepartment = value;
-              });
-            }
-          },
-        ),
-      ),
-    );
-  }
 
   Widget buildSearchField() {
     return Container(
@@ -277,7 +279,6 @@ Future<void> _loadUserAndFetch() async {
             ),
             Row(
               children: [
-                Expanded(child: buildDepartmentDropdown()),
                 const SizedBox(width: 6),
                 Expanded(child: buildSearchField()),
               ],
@@ -302,7 +303,14 @@ Future<void> _loadUserAndFetch() async {
                           color: Colors.white,
                           child: ListTile(
                             title: Text(complaint.baslik),
-                            subtitle: Text(complaint.aciklama),
+                            subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Konu: ${complaint.konu}"),
+                              Text("Açıklama: ${complaint.aciklama}"),
+                            ],
+                          ),
+                            onTap: () => _showComplaintDetails(complaint), // yenı ekledım
                             trailing: complaint.tamamlandi
                                 ? const Icon(
                                     Icons.check_circle,

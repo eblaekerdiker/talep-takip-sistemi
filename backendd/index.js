@@ -76,3 +76,8 @@ process.on('uncaughtException', (err) => {
 app.listen(port, () => {
   console.log(`🚀 Sunucu http://localhost:${port} üzerinde çalışıyor`);
 });
+
+app.use((err, req, res, next) => {
+  console.error('Hata:', err.stack);
+  res.status(500).json({ error: 'Internal Server Error', detail: err.message });
+});
