@@ -119,7 +119,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     if (_formKey.currentState!.validate()) {
       try {
         final response = await http.post(
-          Uri.parse('http://10.0.2.2:3000/api/sifre-sifirla'),
+          Uri.parse('http://127.0.0.1:3000/api/sifre-sifirla'),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode({
             "kullanici_adi": username,

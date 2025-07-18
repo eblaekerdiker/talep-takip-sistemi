@@ -3,7 +3,7 @@ import 'dart:convert';
 
 class ApiService {
   final String baseUrl =
-      'http://10.0.2.2:3000/api/service'; // Backend URL'nizi yazın
+      'http://127.0.0.1:3000/api/service'; // Backend URL'nizi yazın
 
   Future<bool> guncelleTalep(
     String talepId,

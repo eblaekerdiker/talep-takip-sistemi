@@ -112,7 +112,7 @@ class _ComplaintPageState extends State<ComplaintPage> {
       }
     }
 
-    final uri = Uri.parse('http://10.0.2.2:3000/api/veri-ekle');
+    final uri = Uri.parse('http://127.0.0.1:3000/api/veri-ekle');
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer ${widget.token}'
       ..fields['basvuru_tipi'] = _selectedType

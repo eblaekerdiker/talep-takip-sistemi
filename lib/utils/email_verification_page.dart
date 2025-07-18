@@ -40,7 +40,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
     setState(() => _isSubmitting = true);
 
     final response = await http.post(
-      Uri.parse('http://10.0.2.2:3000/api/verify-code'),
+      Uri.parse('http://127.0.0.1:3000/api/verify-code'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': widget.email, 'code': code}),
     );

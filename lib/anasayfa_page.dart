@@ -8,6 +8,19 @@ import 'package:talepsikayet/utils/shared.dart';
 import 'complaint_page.dart';
 import 'login_page.dart';
 
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+String getBaseUrl() {
+  if (kIsWeb) {
+    return "http://localhost:60334"; // Bilgisayar IP adresi (Web için)
+  } else if (Platform.isAndroid) {
+    return "http://10.0.2.2:3000"; // Android emülatör için
+  } else {
+    return "http://localhost:3000"; // iOS simülatör veya masaüstü
+  }
+}
+
 class AnasayfaPage extends StatefulWidget {
   final String token;
 
@@ -20,22 +33,22 @@ class AnasayfaPage extends StatefulWidget {
 class _AnasayfaPageState extends State<AnasayfaPage> {
   List<Map<String, dynamic>> complaints = [];
   bool isLoading = true;
-  int? userId;  // Kullanıcı ID burada tutulacak
+  int? userId; // Kullanıcı ID burada tutulacak
 
   @override
   void initState() {
     super.initState();
     _veriyiYukle();
-    _loadUserAndFetch();  // Kullanıcıyı yükle ve şikayetleri getir
+    _loadUserAndFetch(); // Kullanıcıyı yükle ve şikayetleri getir
   }
 
   Future<void> _loadUserAndFetch() async {
     final id = await SessionManager.getUserId();
     if (id != null) {
       setState(() {
-        userId = id;  // State değişkenine ata
+        userId = id; // State değişkenine ata
       });
-      fetchComplaints(id);  // Kullanıcı ID ile şikayetleri getir
+      fetchComplaints(id); // Kullanıcı ID ile şikayetleri getir
     } else {
       print("Kullanıcı ID bulunamadı");
       setState(() {
@@ -51,7 +64,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
   }
 
   Future<void> fetchComplaints(int id) async {
-    final url = Uri.parse('http://10.0.2.2:3000/api/veriler?kullanici_id=$id');
+    final url = Uri.parse('${getBaseUrl()}/api/veriler?kullanici_id=$id');
 
     try {
       final response = await http.get(url);
@@ -80,7 +93,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
     );
 
     if (result != null && userId != null) {
-      fetchComplaints(userId!);  // userId parametresini gönder
+      fetchComplaints(userId!); // userId parametresini gönder
     }
   }
 
@@ -130,7 +143,7 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
   }
 
   Future<void> _deleteComplaint(int id) async {
-    final url = Uri.parse('http://10.0.2.2:3000/api/veri-sil/$id');  // Dikkat: URL'de boşluk vardı, kaldırdım.
+    final url = Uri.parse('${getBaseUrl()}/api/veri-sil=$id');
 
     try {
       final response = await http.delete(url);
@@ -180,79 +193,79 @@ class _AnasayfaPageState extends State<AnasayfaPage> {
             child: isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : complaints.isEmpty
-                    ? const Center(child: Text('Henüz talep/şikayet oluşturulmadı'))
-                    : ListView.builder(
-                        itemCount: complaints.length,
-                        itemBuilder: (context, index) {
-                          final item = complaints[index];
-                          return ListTile(
-                            title: Text(item['konu'] ?? 'Konu yok'),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(item['icerik'] ?? 'içerik yok'),
-                                const SizedBox(height: 8),
-                                if (item['dosya_url'] != null &&
-                                    item['dosya_url'].toString().isNotEmpty)
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      item['dosya_url'],
-                                      height: 150,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) =>
-                                          const Text('Resim yüklenemedi'),
+                ? const Center(child: Text('Henüz talep/şikayet oluşturulmadı'))
+                : ListView.builder(
+                    itemCount: complaints.length,
+                    itemBuilder: (context, index) {
+                      final item = complaints[index];
+                      return ListTile(
+                        title: Text(item['konu'] ?? 'Konu yok'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item['icerik'] ?? 'içerik yok'),
+                            const SizedBox(height: 8),
+                            if (item['dosya_url'] != null &&
+                                item['dosya_url'].toString().isNotEmpty)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  item['dosya_url'],
+                                  height: 150,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Text('Resim yüklenemedi'),
+                                ),
+                              ),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextButton(
+                              onPressed: () => _navigateToEditPage(item),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.black,
+                              ),
+                              child: const Text('Düzenle'),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete,
+                                color: Colors.black,
+                              ),
+                              onPressed: () {
+                                final rawId = item['ID'];
+                                if (rawId != null) {
+                                  final id = rawId is int
+                                      ? rawId
+                                      : int.tryParse(rawId.toString());
+                                  if (id != null) {
+                                    _confirmAndDelete(id);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Geçersiz ID'),
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Silinecek kayıt bulunamadı',
+                                      ),
                                     ),
-                                  ),
-                              ],
+                                  );
+                                }
+                              },
                             ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextButton(
-                                  onPressed: () => _navigateToEditPage(item),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: Colors.black,
-                                  ),
-                                  child: const Text('Düzenle'),
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete,
-                                    color: Colors.black,
-                                  ),
-                                  onPressed: () {
-                                    final rawId = item['ID'];
-                                    if (rawId != null) {
-                                      final id = rawId is int
-                                          ? rawId
-                                          : int.tryParse(rawId.toString());
-                                      if (id != null) {
-                                        _confirmAndDelete(id);
-                                      } else {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('Geçersiz ID'),
-                                          ),
-                                        );
-                                      }
-                                    } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Silinecek kayıt bulunamadı',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

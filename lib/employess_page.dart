@@ -62,52 +62,53 @@ class _EmployeesPageState extends State<EmployeesPage> {
   String _searchQuery = '';
 
   @override
-void initState() {
-  super.initState();
-  _loadUserAndFetch();
-}
+  void initState() {
+    super.initState();
+    _loadUserAndFetch();
+  }
 
-Future<void> _loadUserAndFetch() async {
-  final userId = await SessionManager.getUserId();
-  await fetchComplaints(userId);
-}
+  Future<void> _loadUserAndFetch() async {
+    final userId = await SessionManager.getUserId();
+    await fetchComplaints(userId);
+  }
 
   Future<void> fetchComplaints(int? userId) async {
-  setState(() => isLoading = true);
-  if (userId == null) {
-    debugPrint('Kullanıcı ID yok, veriler alınamıyor.');
-    setState(() => isLoading = false);
-    return;
-  }
-
-  final url = Uri.parse('http://10.0.2.2:3000/api/veriler?kullanici_id=$userId');
-
-  try {
-    final response = await http.get(url);
-    debugPrint('API STATUS: ${response.statusCode}');
-    debugPrint('API RESPONSE: ${response.body}');
-
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      List<dynamic> data = decoded is List
-          ? decoded
-          : (decoded['data'] ?? []);
-      setState(() {
-        complaints = data.map((json) => Complaint.fromJson(json)).toList();
-        isLoading = false;
-      });
-    } else {
-      throw Exception('Veri alınamadı');
+    setState(() => isLoading = true);
+    if (userId == null) {
+      debugPrint('Kullanıcı ID yok, veriler alınamıyor.');
+      setState(() => isLoading = false);
+      return;
     }
-  } catch (e) {
-    debugPrint('Hata: $e');
-    setState(() => isLoading = false);
-  }
-}
 
+    final url = Uri.parse(
+      'http://127.0.0.1:3000/api/veriler?kullanici_id=$userId',
+    );
+
+    try {
+      final response = await http.get(url);
+      debugPrint('API STATUS: ${response.statusCode}');
+      debugPrint('API RESPONSE: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        List<dynamic> data = decoded is List
+            ? decoded
+            : (decoded['data'] ?? []);
+        setState(() {
+          complaints = data.map((json) => Complaint.fromJson(json)).toList();
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Veri alınamadı');
+      }
+    } catch (e) {
+      debugPrint('Hata: $e');
+      setState(() => isLoading = false);
+    }
+  }
 
   Future<void> markAsCompleted(int id) async {
-    final url = Uri.parse('http://10.0.2.2:3000/api/veriler/$id');
+    final url = Uri.parse('http://127.0.0.1:3000/api/veriler/$id');
     try {
       final response = await http.put(
         url,
